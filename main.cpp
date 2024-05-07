@@ -12,6 +12,7 @@
 #include <SFML/Graphics.hpp>
 using namespace sf;
 
+const float movementSpeed = 0.05f;
 int playerSize = 16;
 
 short int numberMap [36][28] = {
@@ -76,46 +77,35 @@ int main(){
     player.setPosition(16*1, 16*4);
 
     sf::Vector2i playerPosition(1, 4);
+    sf::Vector2i velocity (0, 0);
 
+    Clock clock;
+    float elapsed = 0.0f;
 
     // Game loop
-    while (window.isOpen())
-    {
-        // Handle events
+    while (window.isOpen()) {
+        //Update elasped
+        elapsed += clock.restart().asSeconds(); 
+        //Handle events
         usleep(3000);
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            if (event.type == sf::Event::Closed)
-            {
+        Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
                 window.close();
             }
-
-            if (event.type == Event::KeyPressed) {
+            else if (event.type == Event::KeyPressed) {
                 switch (event.key.code) {
                     case Keyboard::W:
-                        if (numberMap[playerPosition.y-1][playerPosition.x] != 1){
-                            playerPosition.y -=1;
-                            player.setPosition(playerPosition.x*playerSize,playerPosition.y*playerSize);
-                        }
+                        velocity = Vector2i(0, -1);
                         break;
                     case Keyboard::A:
-                        if (numberMap[playerPosition.y][playerPosition.x-1] != 1){
-                            playerPosition.x -=1;
-                            player.setPosition(playerPosition.x*playerSize, playerPosition.y*playerSize);
-                        }
+                        velocity = Vector2i(-1, 0);
                         break;
                     case Keyboard::S:
-                        if (numberMap[playerPosition.y+1][playerPosition.x] != 1){
-                            playerPosition.y +=1;
-                            player.setPosition(playerPosition.x*playerSize,playerPosition.y*playerSize);
-                        }
+                        velocity = Vector2i(0, 1);
                         break;
                     case Keyboard::D:
-                        if (numberMap[playerPosition.y][playerPosition.x+1] != 1){
-                            playerPosition.x += 1;
-                            player.setPosition(playerPosition.x*playerSize,playerPosition.y*playerSize);
-                        }
+                        velocity = Vector2i(1, 0);
                         break;
                     default:
                         break;
@@ -123,30 +113,25 @@ int main(){
             }
         }
 
-        // Check boundary conditions
-        sf::FloatRect playerBounds = player.getGlobalBounds();
-        if (playerBounds.left < 0)
-            player.setPosition(0, player.getPosition().y);
-        if (playerBounds.top < 0)
-            player.setPosition(player.getPosition().x, 0);
-        if (playerBounds.left + playerBounds.width > window.getSize().x)
-            player.setPosition(window.getSize().x - playerBounds.width, player.getPosition().y);
-        if (playerBounds.top + playerBounds.height > window.getSize().y)
-            player.setPosition(player.getPosition().x, window.getSize().y - playerBounds.height);
+        // Move the player
+        if (elapsed >= movementSpeed) { // Check if enough time has passed
+            Vector2i newPosition = playerPosition + velocity;
+            if (numberMap[newPosition.y][newPosition.x] != 1) {
+                playerPosition = newPosition;
+                player.setPosition(playerPosition.x * playerSize, playerPosition.y * playerSize);
+            }
+            elapsed = 0.0f; // Reset the elapsed time
+        }
 
-        // Clear the window
+
+
         window.clear();
-
-        // Draw the map
-        sf::Sprite map(texture);
- 
+        Sprite map(texture);
         window.draw(map);
-
-        // Draw the player
         window.draw(player);
-
-        // Display everything
         window.display();
     }
+
+    return 0;
 
 }
