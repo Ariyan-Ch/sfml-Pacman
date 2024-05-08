@@ -14,7 +14,7 @@
 using namespace std;
 using namespace sf;
 
-const float movementSpeed = 0.1f;
+const float movementSpeed = 0.07f;
 const int playerSize = 16;
 
 short int numberMap [36][28] = {
@@ -57,34 +57,20 @@ short int numberMap [36][28] = {
 };
 
 
-void constantMovement(Window& window, Vector2i& velocity, Vector2i& playerPosition, RectangleShape& player, float& elapsed)
+void constantMovement(Vector2i& velocity, Vector2i& playerPosition, RectangleShape& player, float& elapsed)
 {
-    Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == Event::Closed) {
-                window.close();
-            }
-            else if (event.type == Event::KeyPressed) {
-                switch (event.key.code) {
-                    case Keyboard::W:
-                        velocity = Vector2i(0, -1);
-                        break;
-                    case Keyboard::A:
-                        velocity = Vector2i(-1, 0);
-                        break;
-                    case Keyboard::S:
-                        velocity = Vector2i(0, 1);
-                        break;
-                    case Keyboard::D:
-                        velocity = Vector2i(1, 0);
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
 
-        // Move the player
+        if (sf::Keyboard::isKeyPressed(Keyboard::Up))
+          velocity = Vector2i(0, -1);
+        else if (sf::Keyboard::isKeyPressed(Keyboard::Down))
+                velocity = Vector2i(0, 1);
+        else if (sf::Keyboard::isKeyPressed(Keyboard::Right))
+                velocity = Vector2i(1, 0);
+        else if (sf::Keyboard::isKeyPressed(Keyboard::Left))
+                velocity = Vector2i(-1, 0);      
+
+  
+         // Move the player
         if (elapsed >= movementSpeed) { // Check if enough time has passed
             Vector2i newPosition = playerPosition + velocity;
             if (numberMap[newPosition.y][newPosition.x] != 1) {
@@ -106,22 +92,19 @@ void constantMovement(Window& window, Vector2i& velocity, Vector2i& playerPositi
                        }
                        playerPosition = newPosition;
             }
-            elapsed = 0.0f; // Reset the elapsed time
-        }
+                  elapsed = 0.0f; // Reset the elapsed time
+    }
+        
 }
 
-void pelletCollision(Sprite*& pellets, int size, bool*& ifcollected, int& score, RectangleShape& player)
+void pelletCollision(Vector2i& playerPosition, bool**& ifcollected, int& score)
 {
-    for (int i = 0; i < size; i++)
+    //check if at the current position, a coint is present. If true, increment score and set the array to false at the position
+    if (ifcollected[playerPosition.y][playerPosition.x])
       {
-        if (pellets[i].getPosition() == player.getPosition())
-          {
-            ifcollected[i] = 1;
-            score++;
-            break;
-          }
+        score++;
+        ifcollected[playerPosition.y][playerPosition.x] = 0;
       }
-
 }
 
 int main(){
@@ -173,10 +156,21 @@ int main(){
           }
 
     Sprite* pellets = new Sprite[counter];
-    bool* ifcollected = new bool[counter];
-
-    for (int i = 0; i < counter; i++)
-       ifcollected[i] = 0;
+    //bool array to keep track of pellets
+    bool** ifcollected;
+    ifcollected = new bool*[36];
+    for (int i = 0; i < 36; i++)
+       ifcollected[i] = new bool[28];
+    
+    for (int i = 0; i < 36; i++)
+       for (int j = 0; j < 28; j++)
+          {
+            if (!numberMap[i][j])
+              ifcollected[i][j] = 1;
+            else
+                ifcollected[i][j] = 0;  
+          }
+    
 
 
     int k = 0;
@@ -203,12 +197,12 @@ int main(){
     t_score.setCharacterSize(20);
     t_lives.setCharacterSize(20);
 
-    t_score.setPosition(290, 10);
+    t_score.setPosition(250, 10);
     t_lives.setPosition(0, 10);
     r_score.setFont(font);
     r_lives.setFont(font);
-    r_score.setPosition(150, 18);
-    r_lives.setPosition(400, 10);
+    r_score.setPosition(370, 10);
+    r_lives.setPosition(120, 10);
     r_score.setFillColor(sf::Color::Red);
     r_lives.setFillColor(sf::Color::Red);
     r_score.setCharacterSize(20);
@@ -223,36 +217,81 @@ int main(){
         //Handle events
         usleep(3000);
         
-       constantMovement(window, velocity, playerPosition, player, elapsed);
-       pelletCollision(pellets, counter, ifcollected, score, player);
+        //check if user closes the window
+        Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                window.close();
+        } }
+
+       
+       constantMovement(velocity, playerPosition, player, elapsed);
+       pelletCollision(playerPosition, ifcollected, score);
        
        r_score.setString(to_string(score));
        r_lives.setString(to_string(lives));
-        
+
+       if (score == counter)
+         {
+            window.close();
+            break;
+         }
+
         window.clear();
 
         //draws the pellets
-        for (int i = 0; i < counter; i++)
+        k = 0;
+        for (int i = 0; i < 36; i++)
         {
-            if (!ifcollected[i])
-              window.draw(pellets[i]);
+            for (int j = 0; j < 28; j++)
+            {
+                if (!numberMap[i][j]) //if a coin *should* be present
+                {
+                    if (ifcollected[i][j]) //and it is, the pellet is drawn
+                      window.draw(pellets[k]);
+
+                   k++; //k is incremented either way, skipping collected coins
+                }
+            }
         }
      
 
         window.draw(map);
         window.draw(player);
- 
         window.draw(t_score);
         window.draw(t_lives);
-
-        r_score.setString(to_string(score));
-        std::cout<<to_string(score)<<std::endl;
-
-        std::cout<<lives<<std::endl;
         window.draw(r_score);
         window.draw(r_lives);
         window.display();
     }
+
+    //win screen
+    sf::RenderWindow win_screen(sf::VideoMode(448, 576), "Victory!");
+    Text victory_screen;
+    victory_screen.setFont(font);
+    victory_screen.setString("You Won!!!");
+    victory_screen.setFillColor(sf::Color::Red);
+    victory_screen.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
+    while(win_screen.isOpen())
+    {
+        usleep(3000);
+        Event event;
+        while (win_screen.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                win_screen.close();
+        } }
+
+        if (Keyboard::isKeyPressed(Keyboard::Enter))
+        {
+            win_screen.close();
+          break;
+        }
+
+        win_screen.clear();
+        win_screen.draw(victory_screen);
+        win_screen.display();
+    }
+
 
     return 0;
 
