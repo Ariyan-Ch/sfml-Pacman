@@ -1,5 +1,4 @@
 #include <iostream>
-#include <unistd.h>
 
 //#include <X11/Xlib.h>
 //#undef Drawable
@@ -8,13 +7,15 @@
 //#undef Status
 //#undef Default
 //#undef None
+//"-lX11"
 
+#include <unistd.h>
 #include <SFML/Graphics.hpp>
 using namespace std;
 using namespace sf;
 
-const float movementSpeed = 0.05f;
-int playerSize = 16;
+const float movementSpeed = 0.1f;
+const int playerSize = 16;
 
 short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -55,7 +56,6 @@ short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
 
-//"-lX11"
 
 void constantMovement(Window& window, Vector2i& velocity, Vector2i& playerPosition, RectangleShape& player, float& elapsed)
 {
@@ -91,6 +91,7 @@ void constantMovement(Window& window, Vector2i& velocity, Vector2i& playerPositi
                 playerPosition = newPosition;
                 player.setPosition(playerPosition.x * playerSize, playerPosition.y * playerSize);
             }
+            //teleportation
             if (newPosition.y == 17 && (newPosition.x < 0 || newPosition.x > 27))
             {
                 if (newPosition.x < 0)
@@ -127,6 +128,7 @@ int main(){
 
  sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
 
+    //============== loading resources 
     // Load the image
     sf::Texture texture;
     if (!texture.loadFromFile("resources/map.png"))
@@ -136,11 +138,26 @@ int main(){
         return 1;
     }
 
+    Texture pellet_texture;
+    if(!pellet_texture.loadFromFile("resources/pellet.png")){
+        // Error loading image
+        std::cout<<"Could not load pallet image"<<std::endl;
+        return 1;
+    }
+    Font font;
+    if(!font.loadFromFile("resources/pacFont.ttf")){
+        // Error loading font
+        std::cout<<"Could not load font"<<std::endl;
+        return 1;
+    }
+    //=================---------- loading Resources
+
+    Sprite map(texture);
+
     // Create the player (a simple rectangle for now)
     sf::RectangleShape player(sf::Vector2f(playerSize, playerSize));
     player.setFillColor(sf::Color::Yellow);
     player.setPosition(16*1, 16*4);
-
     sf::Vector2i playerPosition(1, 4);
     sf::Vector2i velocity (0, 0);
 
@@ -161,8 +178,7 @@ int main(){
     for (int i = 0; i < counter; i++)
        ifcollected[i] = 0;
 
-    Texture pellet_texture;
-    pellet_texture.loadFromFile("pellet.png");
+
     int k = 0;
     for (int i = 0; i < 36; i++)
        for (int j = 0; j < 28; j++)
@@ -171,30 +187,35 @@ int main(){
               {
                 pellets[k].setTexture(pellet_texture);
                 pellets[k].setPosition(j * 16, i * 16);
-                pellets[k].setScale(0.05,0.05);
+                pellets[k].setScale(0.2,0.2);
                 k++;
               }
           }
 
-    Font font;
-    font.loadFromFile("Freedom.ttf");
+
+    //================================ lives + scoreboard setup
     Text t_score, t_lives, r_score, r_lives;
     
     t_score.setFont(font);
     t_score.setString("Score:");
     t_lives.setFont(font);
     t_lives.setString("Lives:");
+    t_score.setCharacterSize(20);
+    t_lives.setCharacterSize(20);
+
     t_score.setPosition(290, 10);
     t_lives.setPosition(0, 10);
     r_score.setFont(font);
     r_lives.setFont(font);
-    r_score.setPosition(100, 10);
+    r_score.setPosition(150, 18);
     r_lives.setPosition(400, 10);
-    r_score.setColor(sf::Color::Red);
-    r_lives.setColor(sf::Color::Red);
+    r_score.setFillColor(sf::Color::Red);
+    r_lives.setFillColor(sf::Color::Red);
     r_score.setCharacterSize(20);
     r_lives.setCharacterSize(20);
-   
+    //================================ lives + scoreboard setup
+  
+        
     // Game loop
     while (window.isOpen()) {
         //Update elasped
@@ -209,19 +230,27 @@ int main(){
        r_lives.setString(to_string(lives));
         
         window.clear();
+
+        //draws the pellets
         for (int i = 0; i < counter; i++)
         {
             if (!ifcollected[i])
               window.draw(pellets[i]);
         }
      
-        Sprite map(texture);
+
         window.draw(map);
         window.draw(player);
-        window.draw(r_score);
-        window.draw(r_lives);
+ 
         window.draw(t_score);
         window.draw(t_lives);
+
+        r_score.setString(to_string(score));
+        std::cout<<to_string(score)<<std::endl;
+
+        std::cout<<lives<<std::endl;
+        window.draw(r_score);
+        window.draw(r_lives);
         window.display();
     }
 
