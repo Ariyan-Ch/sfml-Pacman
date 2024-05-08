@@ -179,6 +179,7 @@ int main(){
     Font font;
     font.loadFromFile("Freedom.ttf");
     Text t_score, t_lives, r_score, r_lives;
+    
     t_score.setFont(font);
     t_score.setString("Score:");
     t_lives.setFont(font);
@@ -201,15 +202,11 @@ int main(){
         //Handle events
         usleep(3000);
         
-
        constantMovement(window, velocity, playerPosition, player, elapsed);
        pelletCollision(pellets, counter, ifcollected, score, player);
        
-       
        r_score.setString(to_string(score));
        r_lives.setString(to_string(lives));
-
-
         
         window.clear();
         for (int i = 0; i < counter; i++)
