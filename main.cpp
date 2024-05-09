@@ -17,7 +17,7 @@ using namespace sf;
 
 
 //==================================== Defining constants
-const float movementSpeed = 0.07f;
+const float movementSpeed = 0.1f;
 const int playerSize = 16;
 
 short int numberMap [36][28] = {
@@ -36,7 +36,7 @@ short int numberMap [36][28] = {
         {1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1},
-        {1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1},
+        {1,1,1,1,1,1,0,1,1,0,1,1,2,2,2,2,1,1,0,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,1,2,2,2,2,2,2,1,0,1,1,0,1,1,1,1,1,1},
         {0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0},
         {1,1,1,1,1,1,0,1,1,0,1,2,2,2,2,2,2,1,0,1,1,0,1,1,1,1,1,1},
@@ -67,46 +67,42 @@ struct Ghost{
     Vector2i position;
     Vector2i velocity;
     char name;
-    const float movementSpeed = 0.15f;
+    const float movementSpeed = 0.2f;
     float elapsed;
-    sf::RectangleShape* character;
+    sf::Sprite character;
 
-    Ghost(char n = '-',int x=0, int y=0, int vx = 0, int vy = 0){
+    Ghost(Texture& t, char n = '-', int x=0, int y=0, int vx = 0, int vy = 0){
         position.x = 1;
         position.y = 10;
         velocity.x = 0;
         velocity.y = -1;
         elapsed = 0.0f;
         name = n;
-        character = new sf::RectangleShape(sf::Vector2f(playerSize, playerSize));
+
         if(n=='r')
-        {
-            character->setFillColor(sf::Color::Red);        
+        {   
             position.x = 13;
             position.y = 14;
         }
         else if(n=='g')
         {
-            character->setFillColor(sf::Color::Green);        
             position.x = 14;
             position.y = 14;
         }
         else if(n=='b')
-        {
-            character->setFillColor(sf::Color::Blue);        
+        {      
             position.x = 15;
             position.y = 14;
         }
         else if(n=='p')
-        {
-            character->setFillColor(sf::Color::Magenta);        
+        {      
             position.x = 16;
             position.y = 14;
         }        
-        else
-            {character->setFillColor(sf::Color::White);}
 
-        character->setPosition(16*position.x, 16*position.y);
+        character.setTexture(t); 
+        character.setTextureRect(sf::IntRect(0,0,playerSize,playerSize));
+        character.setPosition(16*position.x, 16*position.y);
     }
 };
 
@@ -272,8 +268,21 @@ void ghostMovement(struct Ghost& g, Vector2i& playerPosition){
             Vector2i newPosition = g.position + g.velocity;
             
             if (numberMap[newPosition.y][newPosition.x] != 1) {
+                if(g.velocity.x==-1){
+                    g.character.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
+                }
+                else if(g.velocity.x == 1){
+                    g.character.setTextureRect(sf::IntRect(playerSize*0,0,playerSize,playerSize));
+                }
+                else if(g.velocity.y == -1){
+                    g.character.setTextureRect(sf::IntRect(playerSize*3,0,playerSize,playerSize));
+                }
+                else if(g.velocity.y == 1){
+                    g.character.setTextureRect(sf::IntRect(playerSize*1,0,playerSize,playerSize));
+                }
+
                 g.position = newPosition;
-                g.character->setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
+                g.character.setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
             }
             g.elapsed = 0.0f; // Reset the elapsed time
         }
@@ -282,23 +291,34 @@ void ghostMovement(struct Ghost& g, Vector2i& playerPosition){
 //========================== Ghost Stuff
 
 
-void constantMovement(Vector2i& velocity, Vector2i& playerPosition, RectangleShape& player, float& elapsed)
+void constantMovement(Vector2i& velocity, Vector2i& playerPosition, Sprite& player, float& elapsed)
 {
 
-        if (sf::Keyboard::isKeyPressed(Keyboard::Up))
-          velocity = Vector2i(0, -1);
-        else if (sf::Keyboard::isKeyPressed(Keyboard::Down))
-                velocity = Vector2i(0, 1);
-        else if (sf::Keyboard::isKeyPressed(Keyboard::Right))
-                velocity = Vector2i(1, 0);
-        else if (sf::Keyboard::isKeyPressed(Keyboard::Left))
-                velocity = Vector2i(-1, 0);      
-
-  
          // Move the player
         if (elapsed >= movementSpeed) { // Check if enough time has passed
+
+            if (sf::Keyboard::isKeyPressed(Keyboard::Up))
+            {  
+                velocity = Vector2i(0, -1);
+                player.setTextureRect(sf::IntRect(playerSize*1,0,playerSize,playerSize));
+            }
+            else if (sf::Keyboard::isKeyPressed(Keyboard::Down))
+            {
+                velocity = Vector2i(0, 1);
+                player.setTextureRect(sf::IntRect(playerSize*3,0,playerSize,playerSize));
+            }
+            else if (sf::Keyboard::isKeyPressed(Keyboard::Right))
+            {
+                velocity = Vector2i(1, 0);
+                player.setTextureRect(sf::IntRect(playerSize*0,0,playerSize,playerSize));
+            }
+            else if (sf::Keyboard::isKeyPressed(Keyboard::Left))
+            {
+                velocity = Vector2i(-1, 0); 
+                player.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
+            }     
             Vector2i newPosition = playerPosition + velocity;
-            if (numberMap[newPosition.y][newPosition.x] != 1) {
+            if (numberMap[newPosition.y][newPosition.x] == 0) {
                 playerPosition = newPosition;
                 player.setPosition(playerPosition.x * playerSize, playerPosition.y * playerSize);
             }
@@ -322,37 +342,35 @@ void constantMovement(Vector2i& velocity, Vector2i& playerPosition, RectangleSha
         
 }
 
-void pelletCollision(Vector2i& playerPosition, bool**& ifcollected, int& score)
+void pelletCollision(Vector2i& playerPosition, bool** ifcollected, int& score)
 {
     //check if at the current position, a coint is present. If true, increment score and set the array to false at the position
     if (ifcollected[playerPosition.y][playerPosition.x])
-      {
+    {
         score++;
         ifcollected[playerPosition.y][playerPosition.x] = 0;
-      }
+    }
 }
 
-void GhostCollision(Vector2i& playerPosition, RectangleShape& player, struct Ghost& ghost, int& lives, bool& ifhit, float& seconds)
+void GhostCollision(Vector2i& playerPosition, Sprite& player, struct Ghost& ghost, int& lives, bool& ifhit, float& seconds)
 {
-   if (!ifhit && playerPosition.x == ghost.position.x && playerPosition.y == ghost.position.y)
-     {
+    if (!ifhit && playerPosition.x == ghost.position.x && playerPosition.y == ghost.position.y)
+    {
       //std::cout << "hit at player: " << playerPosition.x << ", " << playerPosition.y << " and ghost: " << ghost.position.x << ", " << ghost.position.y << " by ghost: " << ghost.name << endl << endl;
       //std::cout << "seconds: "<< seconds << endl;
       lives--; 
-      player.setFillColor(sf::Color::White);
+     // player.setFillColor(sf::Color::White);
       ifhit = true; //to make player invincible
-     }
+    }
 }
 
+int gameEngine(){
 
+    //important booleans
+    bool ifwin = false;
+    bool ifhit = false;
 
-int main(){
-
- //important booleans
- bool ifwin = false;
- bool ifhit = false;
-
- sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
+    sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
 
     //============== loading resources 
     // Load the image
@@ -383,21 +401,34 @@ int main(){
         std::cout<<"Could not load ending screen image"<<std::endl;
         return 1;
     }
+    Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex, playerTex;
+    ghostRedTex.loadFromFile("resources/redGhostRect.png");
+    ghostBlueTex.loadFromFile("resources/blueGhostRect.png");
+    ghostGreenTex.loadFromFile("resources/greenGhostRect.png");
+    ghostPurpleTex.loadFromFile("resources/purpleGhostRect.png");
+    playerTex.loadFromFile("resources/pacmanRect.png");
     //=================---------- loading Resources
 
     Sprite map(texture);
     Sprite end(ending_screen);
     
 
-    // Create the player (a simple rectangle for now)
-    sf::RectangleShape player(sf::Vector2f(playerSize, playerSize));
-    player.setFillColor(sf::Color::Yellow);
+    // Create the player 
+    sf::Sprite player;
+    player.setTexture(playerTex);
+    player.setTextureRect(sf::IntRect(playerSize*0,0,playerSize,playerSize));
+   // player.setFillColor(sf::Color::Yellow);
     player.setPosition(16*1, 16*4);
+
+    Ghost g1(ghostRedTex,'r');
+    Ghost g2(ghostGreenTex,'g');
+    Ghost g3(ghostBlueTex,'b');
+    Ghost g4(ghostPurpleTex,'p');
 
     sf::Vector2i playerPosition(1, 4);
     sf::Vector2i velocity (0, 0);
 
-    int score = 0, lives = 30;
+    int score = 0, lives = 5;
     Clock clock;
     float elapsed = 0.0f;
     float hit_elapsed = 0.0f;
@@ -462,10 +493,6 @@ int main(){
     r_lives.setCharacterSize(20);
     //================================ lives + scoreboard setup
 
-    Ghost g1('r');
-    Ghost g2('g');
-    Ghost g3('b');
-    Ghost g4('p');
 
     float seconds = 0.0f;
     //================================ Game Loop - Start
@@ -489,39 +516,40 @@ int main(){
                 window.close();
             }
         }
-       ghostMovement(g1,playerPosition);
-       ghostMovement(g2,playerPosition);
-       ghostMovement(g3,playerPosition);
-       ghostMovement(g4,playerPosition);
+        ghostMovement(g1,playerPosition);
+        ghostMovement(g2,playerPosition);
+        ghostMovement(g3,playerPosition);
+        ghostMovement(g4,playerPosition);
 
 
-       constantMovement(velocity, playerPosition, player, elapsed);
-       pelletCollision(playerPosition, ifcollected, score);
+        constantMovement(velocity, playerPosition, player, elapsed);
+        pelletCollision(playerPosition, ifcollected, score);
        
-       if (!ifhit) { //only if player is no longer invincible do we check ghost collision
-        GhostCollision(playerPosition, player, g1, lives, ifhit, seconds);
-        GhostCollision(playerPosition, player, g2, lives, ifhit, seconds);
-        GhostCollision(playerPosition, player, g3, lives, ifhit, seconds);
-        GhostCollision(playerPosition, player, g4, lives, ifhit, seconds);
-       }
-       else
-       {
-        if (hit_elapsed > 3) //if invincibilty frames are over, reset the player
-          {
-            player.setFillColor(sf::Color::Yellow);
+        if (!ifhit) { //only if player is no longer invincible do we check ghost collision
+            GhostCollision(playerPosition, player, g1, lives, ifhit, seconds);
+            GhostCollision(playerPosition, player, g2, lives, ifhit, seconds);
+            GhostCollision(playerPosition, player, g3, lives, ifhit, seconds);
+            GhostCollision(playerPosition, player, g4, lives, ifhit, seconds);
             hit_elapsed = 0.0;
-            ifhit = false; //the player can now be hit again
-          }
-       }
+        }
+        else
+        {
+            if (hit_elapsed > 5) //if invincibilty frames are over, reset the player
+            {
+               // player.setFillColor(sf::Color::Yellow);
+                hit_elapsed = 0.0;
+                ifhit = false; //the player can now be hit again
+            }
+        }
 
-       r_score.setString(std::to_string(score));
-       r_lives.setString(std::to_string(lives));
+        r_score.setString(std::to_string(score));
+        r_lives.setString(std::to_string(lives));
 
-       if (score == counter){
+        if (score == counter){
             window.close();
             ifwin = true;
             break;
-         }
+        }
 
         if (lives == 0)
         {
@@ -542,7 +570,7 @@ int main(){
                     if (ifcollected[i][j]) //and it is, the pellet is drawn
                       window.draw(pellets[k]);
 
-                   k++; //k is incremented either way, skipping collected coins
+                    k++; //k is incremented either way, skipping collected coins
                 }
             }
         }
@@ -551,10 +579,10 @@ int main(){
         window.draw(map);
         window.draw(player);
 
-        window.draw(*g1.character);
-        window.draw(*g2.character);
-        window.draw(*g3.character);
-        window.draw(*g4.character);
+        window.draw(g1.character);
+        window.draw(g2.character);
+        window.draw(g3.character);
+        window.draw(g4.character);
 
         window.draw(t_score);
         window.draw(t_lives);
@@ -594,13 +622,14 @@ int main(){
         while (win_screen.pollEvent(event)) {
             if (event.type == Event::Closed) {
                 win_screen.close();
-        } }
+            } 
+        }
 
-            if (Keyboard::isKeyPressed(Keyboard::Enter))
-            {
-                win_screen.close();
+        if (Keyboard::isKeyPressed(Keyboard::Enter))
+        {
+            win_screen.close();
             break;
-            }
+        }
 
         win_screen.clear();
         win_screen.draw(end);
@@ -610,4 +639,12 @@ int main(){
     
     return 0;
 
+}
+
+int main(){
+
+
+    gameEngine();
+    
+    return 0;
 }
