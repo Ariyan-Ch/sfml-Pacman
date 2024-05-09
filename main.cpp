@@ -58,6 +58,246 @@ short int numberMap [36][28] = {
 };
 
 
+
+//================================================================------...... DECLARATION OF GLOBAL VARS
+//========================== Ghost Stuff
+struct Ghost{
+    Vector2i position;
+    Vector2i velocity;
+    char name;
+    const float movementSpeed = 0.15f;
+    float elapsed;
+    sf::RectangleShape* character;
+
+    Ghost(char n = '-',int x=0, int y=0, int vx = 0, int vy = 0){
+        position.x = 1;
+        position.y = 10;
+        velocity.x = 0;
+        velocity.y = -1;
+        elapsed = 0.0f;
+        name = n;
+        character = new sf::RectangleShape(sf::Vector2f(playerSize, playerSize));
+        if(n=='r')
+        {
+            character->setFillColor(sf::Color::Red);        
+            position.x = 13;
+            position.y = 14;
+        }
+        else if(n=='g')
+        {
+            character->setFillColor(sf::Color::Green);        
+            position.x = 14;
+            position.y = 14;
+        }
+        else if(n=='b')
+        {
+            character->setFillColor(sf::Color::Blue);        
+            position.x = 15;
+            position.y = 14;
+        }
+        else if(n=='p')
+        {
+            character->setFillColor(sf::Color::Magenta);        
+            position.x = 16;
+            position.y = 14;
+        }        
+        else
+            {character->setFillColor(sf::Color::White);}
+
+        character->setPosition(16*position.x, 16*position.y);
+    }
+};
+
+//takes ghost coords and player coords, returns distance between them.
+double calculateDistance(int x1, int y1, int x2, int y2) {
+    double deltaX = x1 - x2;
+    double deltaY = y1 - y2;
+    deltaX = deltaX * deltaX;
+    deltaY = deltaY * deltaY;
+
+    return std::pow(deltaX+deltaY, 0.5);;
+}
+void decideVelo(struct Ghost& g, Vector2i& playerPosition){
+    double minDistance = 5000;
+    double dist;
+    if(g.name == 'r'){
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+            //std::cout<<minDistance<<std::endl;
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
+            }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = 1;
+            }
+        }
+    }
+    else if(g.name == 'b'){
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
+            }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = 1;
+            }
+        }
+    }
+    else if(g.name == 'g'){
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
+            }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+4, playerPosition.y+1);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = 1;
+            }
+        }
+    }
+    else if(g.name == 'p'){
+        minDistance = -1;
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
+            }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = +1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = +1;
+            }
+        }
+    }
+}
+//takes ghost structure and player position as parameters. returns nothing.
+void ghostMovement(struct Ghost& g, Vector2i& playerPosition){
+
+    decideVelo(g,playerPosition);
+
+     if (g.elapsed >= g.movementSpeed) { // Check if enough time has passed
+ 
+            Vector2i newPosition = g.position + g.velocity;
+            
+            //std::cout<<g.elapsed<<std::endl;
+            if (numberMap[newPosition.y][newPosition.x] != 1) {
+                g.position = newPosition;
+                g.character->setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
+            }
+
+
+            //teleportation
+            /*
+            if (newPosition.y == 17 && (newPosition.x < 0 || newPosition.x > 27))
+            {
+                if (newPosition.x < 0)
+                  {
+                    newPosition.x += 28;
+                    player.setPosition( newPosition.x * playerSize, playerPosition.y * playerSize);
+                  }
+                else if (newPosition.x > 27)
+                       {
+                        newPosition.x -= 28;
+                        player.setPosition(newPosition.x * playerSize, playerPosition.y * playerSize);
+                       }
+                       playerPosition = newPosition;
+            }*/
+            g.elapsed = 0.0f; // Reset the elapsed time
+        }
+}
+
+//========================== Ghost Stuff
+
+
 void constantMovement(Vector2i& velocity, Vector2i& playerPosition, RectangleShape& player, float& elapsed)
 {
 
@@ -213,14 +453,22 @@ int main(){
     r_lives.setCharacterSize(20);
     //================================ lives + scoreboard setup
 
+    Ghost g1('r');
+    Ghost g2('g');
+    Ghost g3('b');
+    Ghost g4('p');
+
     float seconds = 0.0f;
     // Game loop
     while (window.isOpen()) {
         //Update elasped
         seconds = clock.restart().asSeconds();
         elapsed += seconds;
-  
-        
+        g1.elapsed += seconds;
+        g2.elapsed += seconds;
+        g3.elapsed += seconds;
+        g4.elapsed += seconds;
+
         //Handle events
         usleep(3000);
         
@@ -229,9 +477,14 @@ int main(){
         while (window.pollEvent(event)) {
             if (event.type == Event::Closed) {
                 window.close();
-        } }
+            }
+        }
+       ghostMovement(g1,playerPosition);
+       ghostMovement(g2,playerPosition);
+       ghostMovement(g3,playerPosition);
+       ghostMovement(g4,playerPosition);
 
-       
+
        constantMovement(velocity, playerPosition, player, elapsed);
        pelletCollision(playerPosition, ifcollected, score);
        
@@ -266,6 +519,12 @@ int main(){
 
         window.draw(map);
         window.draw(player);
+
+        window.draw(*g1.character);
+        window.draw(*g2.character);
+        window.draw(*g3.character);
+        window.draw(*g4.character);
+
         window.draw(t_score);
         window.draw(t_lives);
         window.draw(r_score);
@@ -330,7 +589,7 @@ int main(){
         win_screen.draw(victory_screen);
         win_screen.display();
        }
-       }
+     }
 
 
     return 0;
