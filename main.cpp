@@ -112,6 +112,7 @@ void pelletCollision(Vector2i& playerPosition, bool**& ifcollected, int& score)
 
 int main(){
 
+ bool ifwin = false;
  sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
 
     //============== loading resources 
@@ -211,14 +212,14 @@ int main(){
     r_score.setCharacterSize(20);
     r_lives.setCharacterSize(20);
     //================================ lives + scoreboard setup
-    Ghost g1;
+
     float seconds = 0.0f;
     // Game loop
     while (window.isOpen()) {
         //Update elasped
         seconds = clock.restart().asSeconds();
         elapsed += seconds;
-        g1.elapsed += seconds;
+  
         
         //Handle events
         usleep(3000);
@@ -240,6 +241,7 @@ int main(){
        if (score == counter)
          {
             window.close();
+            ifwin = true;
             break;
          }
 
@@ -271,12 +273,14 @@ int main(){
         window.display();
     }
 
-    //win screen
+    if (ifwin)
+    {
+        //win screen
     sf::RenderWindow win_screen(sf::VideoMode(448, 576), "Victory!");
     Text victory_screen;
     victory_screen.setFont(font);
     victory_screen.setString("You Won!!!");
-    victory_screen.setFillColor(sf::Color::Red);
+    victory_screen.setFillColor(sf::Color::Yellow);
     victory_screen.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
     while(win_screen.isOpen())
     {
@@ -297,6 +301,36 @@ int main(){
         win_screen.draw(victory_screen);
         win_screen.display();
     }
+    }
+    else
+       {
+          //win screen
+    sf::RenderWindow win_screen(sf::VideoMode(448, 576), "Defeat...");
+    Text victory_screen;
+    victory_screen.setFont(font);
+    victory_screen.setString("Game Over");
+    victory_screen.setFillColor(sf::Color::Red);
+    victory_screen.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
+    while(win_screen.isOpen())
+    {
+        usleep(3000);
+        Event event;
+        while (win_screen.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                win_screen.close();
+        } }
+
+        if (Keyboard::isKeyPressed(Keyboard::Enter))
+        {
+            win_screen.close();
+          break;
+        }
+
+        win_screen.clear();
+        win_screen.draw(victory_screen);
+        win_screen.display();
+       }
+       }
 
 
     return 0;
