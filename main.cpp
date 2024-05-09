@@ -10,6 +10,7 @@
 //"-lX11"
 
 #include <unistd.h>
+#include <math.h>
 #include <SFML/Graphics.hpp>
 using namespace std;
 using namespace sf;
@@ -107,6 +108,8 @@ void pelletCollision(Vector2i& playerPosition, bool**& ifcollected, int& score)
       }
 }
 
+
+
 int main(){
 
  sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
@@ -122,7 +125,7 @@ int main(){
     }
 
     Texture pellet_texture;
-    if(!pellet_texture.loadFromFile("resources/pellet.png")){
+    if(!pellet_texture.loadFromFile("resources/smallPellet.png")){
         // Error loading image
         std::cout<<"Could not load pallet image"<<std::endl;
         return 1;
@@ -141,6 +144,7 @@ int main(){
     sf::RectangleShape player(sf::Vector2f(playerSize, playerSize));
     player.setFillColor(sf::Color::Yellow);
     player.setPosition(16*1, 16*4);
+
     sf::Vector2i playerPosition(1, 4);
     sf::Vector2i velocity (0, 0);
 
@@ -181,7 +185,6 @@ int main(){
               {
                 pellets[k].setTexture(pellet_texture);
                 pellets[k].setPosition(j * 16, i * 16);
-                pellets[k].setScale(0.2,0.2);
                 k++;
               }
           }
@@ -208,12 +211,15 @@ int main(){
     r_score.setCharacterSize(20);
     r_lives.setCharacterSize(20);
     //================================ lives + scoreboard setup
-  
-        
+    Ghost g1;
+    float seconds = 0.0f;
     // Game loop
     while (window.isOpen()) {
         //Update elasped
-        elapsed += clock.restart().asSeconds(); 
+        seconds = clock.restart().asSeconds();
+        elapsed += seconds;
+        g1.elapsed += seconds;
+        
         //Handle events
         usleep(3000);
         
