@@ -15,6 +15,8 @@
 using namespace std;
 using namespace sf;
 
+
+//==================================== Defining constants
 const float movementSpeed = 0.07f;
 const int playerSize = 16;
 
@@ -57,9 +59,9 @@ short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
 
-
-
 //================================================================------...... DECLARATION OF GLOBAL VARS
+
+
 //========================== Ghost Stuff
 struct Ghost{
     Vector2i position;
@@ -259,6 +261,7 @@ void decideVelo(struct Ghost& g, Vector2i& playerPosition){
         }
     }
 }
+
 //takes ghost structure and player position as parameters. returns nothing.
 void ghostMovement(struct Ghost& g, Vector2i& playerPosition){
 
@@ -315,7 +318,7 @@ void constantMovement(Vector2i& velocity, Vector2i& playerPosition, RectangleSha
                        playerPosition = newPosition;
             }
                   elapsed = 0.0f; // Reset the elapsed time
-    }
+        }
         
 }
 
@@ -511,11 +514,10 @@ int main(){
           }
        }
 
-       r_score.setString(to_string(score));
-       r_lives.setString(to_string(lives));
+       r_score.setString(std::to_string(score));
+       r_lives.setString(std::to_string(lives));
 
-       if (score == counter)
-         {
+       if (score == counter){
             window.close();
             ifwin = true;
             break;
@@ -565,7 +567,7 @@ int main(){
     
     Text outcome;
     outcome.setFont(font);
-    string title;
+    std::string title;
     end.setPosition(end.getPosition().x, end.getPosition().y + 25);
     
     if (ifwin) { //if the player won
@@ -594,11 +596,11 @@ int main(){
                 win_screen.close();
         } }
 
-        if (Keyboard::isKeyPressed(Keyboard::Enter))
-        {
-            win_screen.close();
-          break;
-        }
+            if (Keyboard::isKeyPressed(Keyboard::Enter))
+            {
+                win_screen.close();
+            break;
+            }
 
         win_screen.clear();
         win_screen.draw(end);
