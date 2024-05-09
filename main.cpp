@@ -268,29 +268,10 @@ void ghostMovement(struct Ghost& g, Vector2i& playerPosition){
  
             Vector2i newPosition = g.position + g.velocity;
             
-            //std::cout<<g.elapsed<<std::endl;
             if (numberMap[newPosition.y][newPosition.x] != 1) {
                 g.position = newPosition;
                 g.character->setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
             }
-
-
-            //teleportation
-            /*
-            if (newPosition.y == 17 && (newPosition.x < 0 || newPosition.x > 27))
-            {
-                if (newPosition.x < 0)
-                  {
-                    newPosition.x += 28;
-                    player.setPosition( newPosition.x * playerSize, playerPosition.y * playerSize);
-                  }
-                else if (newPosition.x > 27)
-                       {
-                        newPosition.x -= 28;
-                        player.setPosition(newPosition.x * playerSize, playerPosition.y * playerSize);
-                       }
-                       playerPosition = newPosition;
-            }*/
             g.elapsed = 0.0f; // Reset the elapsed time
         }
 }
@@ -348,11 +329,26 @@ void pelletCollision(Vector2i& playerPosition, bool**& ifcollected, int& score)
       }
 }
 
+void GhostCollision(Vector2i& playerPosition, RectangleShape& player, struct Ghost& ghost, int& lives, bool& ifhit, float& seconds)
+{
+   if (!ifhit && playerPosition.x == ghost.position.x && playerPosition.y == ghost.position.y)
+     {
+      //std::cout << "hit at player: " << playerPosition.x << ", " << playerPosition.y << " and ghost: " << ghost.position.x << ", " << ghost.position.y << " by ghost: " << ghost.name << endl << endl;
+      //std::cout << "seconds: "<< seconds << endl;
+      lives--; 
+      player.setFillColor(sf::Color::White);
+      ifhit = true; //to make player invincible
+     }
+}
+
 
 
 int main(){
 
+ //important booleans
  bool ifwin = false;
+ bool ifhit = false;
+
  sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
 
     //============== loading resources 
@@ -368,7 +364,7 @@ int main(){
     Texture pellet_texture;
     if(!pellet_texture.loadFromFile("resources/smallPellet.png")){
         // Error loading image
-        std::cout<<"Could not load pallet image"<<std::endl;
+        std::cout<<"Could not load pellet image"<<std::endl;
         return 1;
     }
     Font font;
@@ -377,9 +373,18 @@ int main(){
         std::cout<<"Could not load font"<<std::endl;
         return 1;
     }
+
+    Texture ending_screen;
+    if (!ending_screen.loadFromFile("resources/win_screen.png")){
+         // Error loading image
+        std::cout<<"Could not load ending screen image"<<std::endl;
+        return 1;
+    }
     //=================---------- loading Resources
 
     Sprite map(texture);
+    Sprite end(ending_screen);
+    
 
     // Create the player (a simple rectangle for now)
     sf::RectangleShape player(sf::Vector2f(playerSize, playerSize));
@@ -389,9 +394,10 @@ int main(){
     sf::Vector2i playerPosition(1, 4);
     sf::Vector2i velocity (0, 0);
 
-    int score = 0, lives = 3;
+    int score = 0, lives = 30;
     Clock clock;
     float elapsed = 0.0f;
+    float hit_elapsed = 0.0f;
     int counter = 0;
     for (int i = 0; i < 36; i++)
        for (int j = 0; j < 28; j++)
@@ -399,7 +405,7 @@ int main(){
             if (!numberMap[i][j])
               counter++;
           }
-
+    
     Sprite* pellets = new Sprite[counter];
     //bool array to keep track of pellets
     bool** ifcollected;
@@ -459,7 +465,7 @@ int main(){
     Ghost g4('p');
 
     float seconds = 0.0f;
-    // Game loop
+    //================================ Game Loop - Start
     while (window.isOpen()) {
         //Update elasped
         seconds = clock.restart().asSeconds();
@@ -468,6 +474,7 @@ int main(){
         g2.elapsed += seconds;
         g3.elapsed += seconds;
         g4.elapsed += seconds;
+        hit_elapsed += seconds;
 
         //Handle events
         usleep(3000);
@@ -488,6 +495,22 @@ int main(){
        constantMovement(velocity, playerPosition, player, elapsed);
        pelletCollision(playerPosition, ifcollected, score);
        
+       if (!ifhit) { //only if player is no longer invincible do we check ghost collision
+        GhostCollision(playerPosition, player, g1, lives, ifhit, seconds);
+        GhostCollision(playerPosition, player, g2, lives, ifhit, seconds);
+        GhostCollision(playerPosition, player, g3, lives, ifhit, seconds);
+        GhostCollision(playerPosition, player, g4, lives, ifhit, seconds);
+       }
+       else
+       {
+        if (hit_elapsed > 3) //if invincibilty frames are over, reset the player
+          {
+            player.setFillColor(sf::Color::Yellow);
+            hit_elapsed = 0.0;
+            ifhit = false; //the player can now be hit again
+          }
+       }
+
        r_score.setString(to_string(score));
        r_lives.setString(to_string(lives));
 
@@ -497,6 +520,12 @@ int main(){
             ifwin = true;
             break;
          }
+
+        if (lives == 0)
+        {
+          window.close();
+          break;
+        } 
 
         window.clear();
 
@@ -531,45 +560,31 @@ int main(){
         window.draw(r_lives);
         window.display();
     }
-
-    if (ifwin)
-    {
-        //win screen
-    sf::RenderWindow win_screen(sf::VideoMode(448, 576), "Victory!");
-    Text victory_screen;
-    victory_screen.setFont(font);
-    victory_screen.setString("You Won!!!");
-    victory_screen.setFillColor(sf::Color::Yellow);
-    victory_screen.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
-    while(win_screen.isOpen())
-    {
-        usleep(3000);
-        Event event;
-        while (win_screen.pollEvent(event)) {
-            if (event.type == Event::Closed) {
-                win_screen.close();
-        } }
-
-        if (Keyboard::isKeyPressed(Keyboard::Enter))
-        {
-            win_screen.close();
-          break;
-        }
-
-        win_screen.clear();
-        win_screen.draw(victory_screen);
-        win_screen.display();
-    }
+    //================================ Game Loop - End
+    
+    
+    Text outcome;
+    outcome.setFont(font);
+    string title;
+    end.setPosition(end.getPosition().x, end.getPosition().y + 25);
+    
+    if (ifwin) { //if the player won
+      outcome.setString("You Won!!!");
+      outcome.setFillColor(sf::Color::Yellow);
+      title = "Victory!";
     }
     else
-       {
-          //win screen
-    sf::RenderWindow win_screen(sf::VideoMode(448, 576), "Defeat...");
-    Text victory_screen;
-    victory_screen.setFont(font);
-    victory_screen.setString("Game Over");
-    victory_screen.setFillColor(sf::Color::Red);
-    victory_screen.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
+    {
+      outcome.setString("Game Over");
+      outcome.setFillColor(sf::Color::Red);
+      title = "Defeat...";
+    }
+    
+    
+    sf::RenderWindow win_screen(sf::VideoMode(448, 576), title);
+    outcome.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
+
+    //End Screen Loop
     while(win_screen.isOpen())
     {
         usleep(3000);
@@ -586,12 +601,11 @@ int main(){
         }
 
         win_screen.clear();
-        win_screen.draw(victory_screen);
+        win_screen.draw(end);
+        win_screen.draw(outcome);
         win_screen.display();
-       }
-     }
-
-
+    }
+    
     return 0;
 
 }
