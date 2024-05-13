@@ -63,15 +63,11 @@ short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
 
-sf::Texture texture;
-sf::Texture pellet_texture;
-sf::Font font;
-sf::Texture ending_screen;
-sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex, playerTex;
 
 int score = 0, lives = 5;
 bool ifwin = false;
 bool ifhit = false;
+bool gameRuns = true;
 
 pthread_t gameEngineThreadID, playerThreadID, ghost1ThreadID, ghost2ThreadID,ghost3ThreadID,ghost4ThreadID;
 sem_t semaGhost;
@@ -281,13 +277,15 @@ void decideVelo(struct Ghost& g){
 }
 //takes ghost structure returns nothing. moves the ghost
 void* ghostMovement(void* arg){
-    //sem_post(&semaGhost);
-    struct Ghost * g = (Ghost*)arg;
-    Vector2i oldVelo = g->velocity;
-    decideVelo(*g);
 
-     if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
- 
+    while(gameRuns){
+    //sem_post(&semaGhost);
+        struct Ghost * g = (Ghost*)arg;
+        Vector2i oldVelo = g->velocity;
+        decideVelo(*g);
+
+        if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
+
             Vector2i newPosition = g->position + g->velocity;
             if(oldVelo != g->velocity){
                 if (numberMap[newPosition.y][newPosition.x] != 1) {
@@ -309,6 +307,7 @@ void* ghostMovement(void* arg){
             g->character.setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
             g->elapsed = 0.0f; // Reset the elapsed time
         }
+    }
    //sem_post(&semaGhost);
     //std::cout<<"Ghost"<<std::endl;
     pthread_exit(0);
@@ -406,11 +405,16 @@ void GhostCollision(float& seconds)
 void* gameEngine(void* arg){
     //sem_init(&semaGhost,0,1);
     //window
+
     sf::RenderWindow window(sf::VideoMode(448, 576), "Pac Man");
 
+    sf::Texture texture;
+    sf::Texture pellet_texture;
+    sf::Font font;
+    sf::Texture ending_screen;
+    sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex, playerTex;
+
     //screens
-
-
     //============================================== loading resources.
     if(!texture.loadFromFile("resources/map.png"))
     {
@@ -558,11 +562,6 @@ void* gameEngine(void* arg){
         //ghostMovement((void*)&g3);
         //ghostMovement((void*)&g4);
 
-        pthread_create(&ghost1ThreadID,NULL,ghostMovement,(void*)&g1);
-        pthread_create(&ghost2ThreadID,NULL,ghostMovement,(void*)&g2);
-        pthread_create(&ghost3ThreadID,NULL,ghostMovement,(void*)&g3);
-        pthread_create(&ghost4ThreadID,NULL,ghostMovement,(void*)&g4);
-
         constantMovement(elapsed);
 
         pelletCollision(ifcollected);
@@ -628,10 +627,10 @@ void* gameEngine(void* arg){
         window.draw(r_score);
         window.draw(r_lives);
         window.display();
-       // sem_post(&semaGhost);
+
     }
     //================================ Game Loop - End
-    
+    gameRuns = false;
     Text outcome;
     outcome.setFont(font);
     std::string title;
@@ -674,8 +673,9 @@ void* gameEngine(void* arg){
         win_screen.draw(end);
         win_screen.draw(outcome);
         win_screen.display();
+        gameRuns = false;
     }
-    
+
     pthread_exit(0);
 }
 
@@ -685,8 +685,15 @@ int main(){
 
     XInitThreads();
     pthread_create(&gameEngineThreadID,NULL,gameEngine,NULL);
-    
+    sleep(2);
 
+    pthread_create(&ghost1ThreadID,NULL,ghostMovement,(void*)&g1);
+    pthread_create(&ghost2ThreadID,NULL,ghostMovement,(void*)&g2);
+    pthread_create(&ghost3ThreadID,NULL,ghostMovement,(void*)&g3);
+    pthread_create(&ghost4ThreadID,NULL,ghostMovement,(void*)&g4);
+
+
+    
     pthread_exit(0);
     return 0;
 }
