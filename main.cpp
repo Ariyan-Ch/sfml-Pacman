@@ -25,7 +25,9 @@ sf::Sprite playerSprite;
 sf::Vector2i playerPosition(1, 4);
 sf::Vector2i playerVelocity (0, 0);
 sf::Text r_score, r_lives;
-
+int BigPelletPositions [4][4] = {{1, 26, 1, 26}, //x-positions
+                                 {11, 11, 24, 24}}; //y-positions
+                                  
 short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -463,6 +465,7 @@ void* gameEngine(void* arg){
 
     sf::Texture texture;
     sf::Texture pellet_texture;
+    sf::Texture Big_pellet_texture;
     sf::Font font;
     sf::Texture ending_screen;
     sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex;
@@ -482,6 +485,7 @@ void* gameEngine(void* arg){
     ghostPurpleTex.loadFromFile("resources/purpleGhostRect.png");
     playerTex.loadFromFile("resources/pacmanRect.png");
     playerDeadTex.loadFromFile("resources/pacmanDeadRect.png");
+    Big_pellet_texture.loadFromFile("resources/BigPellet.png");
     eyes.loadFromFile("resources/eyes.png");
 
     g1.character.setTexture(ghostRedTex); 
@@ -508,7 +512,7 @@ void* gameEngine(void* arg){
     Sprite map(texture);
     Sprite end(ending_screen);
 
-    //---- pallets
+    //----small pellets
     int counter = 0;
     for (int i = 0; i < 36; i++)
        for (int j = 0; j < 28; j++)
@@ -545,7 +549,27 @@ void* gameEngine(void* arg){
               }
           }
 
-    //----pallets
+    //----small pellets
+
+    //----Big Pellets
+    bool* BP;
+    BP = new bool[4];
+    for (int i = 0; i < 4; i++)
+        {
+            if (i == 0)
+            BP[i] = true;
+            else
+            BP[i] = false;
+        }
+    
+    sf::Sprite* BigPellets = new Sprite[4];
+    for (int i = 0; i < 4; i++)
+        {
+            BigPellets[i].setTexture(Big_pellet_texture);
+            BigPellets[i].setPosition(BigPelletPositions[0][i] * 16, BigPelletPositions[1][i] * 16);
+        }
+
+    //----Big Pellets
 
     //================================ lives + scoreboard setup
     Text t_score, t_lives;
@@ -658,6 +682,12 @@ void* gameEngine(void* arg){
                 }
             }
         }
+
+        for (int i = 0; i < 4; i++)
+           {
+            if (BP[i])
+              window.draw(BigPellets[i]);
+           }
      
 
         window.draw(map);
