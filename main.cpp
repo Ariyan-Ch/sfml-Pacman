@@ -454,14 +454,13 @@ void* UI(void* arg){
             r_score.setString(std::to_string(score));
         }
         
-        if (playerPosition.x == BigPelletPositions[0][BigPellet_Index] && playerPosition.y == BigPelletPositions[1][BigPellet_Index])
+        if (playerPosition.x == BigPelletPositions[0][BigPellet_Index] && playerPosition.y == BigPelletPositions[1][BigPellet_Index] && !BigPelletEaten && BigPellet_Index < 4)
         {
             BigPelletEaten = true;
             score += 10;
             r_score.setString(std::to_string(score));
             BigPellet_Index++;
             BP_elapsed = 0.0f;    
-            
         }
 
         if (!ifhit) { //only if player is no longer invincible do we check ghost collision
@@ -669,7 +668,7 @@ void* gameEngine(void* arg){
             playerSprite.setTexture(playerTex);
 
 
-        if (score == counter){
+        if (score == counter + 40){
             window.close();
             ifwin = true;
             break;
@@ -682,7 +681,6 @@ void* gameEngine(void* arg){
         } 
 
         window.clear();
-
         //draws the pellets
         k = 0;
         for (int i = 0; i < 36; i++)
@@ -699,16 +697,19 @@ void* gameEngine(void* arg){
             }
         }
 
-        if (BigPellet_Index < 4 && BP_elapsed > 5)
+        if (BigPellet_Index <= 4 && BP_elapsed > 5)
         {
-            BigPellets.setPosition(16 * BigPelletPositions[0][BigPellet_Index], 16 * BigPelletPositions[1][BigPellet_Index]);
+            if (BigPellet_Index < 4)
+              BigPellets.setPosition(16 * BigPelletPositions[0][BigPellet_Index], 16 * BigPelletPositions[1][BigPellet_Index]);
+            else
+                BigPellets.setPosition(0, 0);
             BigPelletEaten = false;
         }
 
         for (int i = 0; i < 4; i++)
         {
-            if (BP_elapsed > 5)
-              window.draw(BigPellets);
+            if (!BigPelletEaten && BigPellet_Index < 4)
+            window.draw(BigPellets);
         }
      
 
