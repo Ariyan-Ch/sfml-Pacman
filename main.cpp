@@ -324,28 +324,28 @@ void GhostCollision()
         return;
     if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
     {
-        lives--; 
         ifhit = true; //to make player invincible
-        r_lives.setString(std::to_string(lives));
     }
     else if (playerPosition.x == g2.position.x && playerPosition.y == g2.position.y)
     {
-        lives--; 
         ifhit = true; //to make player invincible
-        r_lives.setString(std::to_string(lives));
-
     }
     else if (playerPosition.x == g3.position.x && playerPosition.y == g3.position.y)
     {
-        lives--; 
         ifhit = true; //to make player invincible
-        r_lives.setString(std::to_string(lives));
     }
     else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
     {
-        lives--; 
         ifhit = true; //to make player invincible
+    }
+    
+    if(ifhit){
+        lives--;
         r_lives.setString(std::to_string(lives));
+        playerSprite.setPosition(16,16*4);
+        playerPosition.x = 1;
+        playerPosition.y = 4;
+        hit_elapsed = 0.0;
     }
 }
 void* UI(void* arg){
@@ -401,7 +401,6 @@ void* UI(void* arg){
 
         if (!ifhit) { //only if player is no longer invincible do we check ghost collision
             GhostCollision();
-            hit_elapsed = 0.0;
         }
         else if (hit_elapsed > 5) //if invincibilty frames are over, reset the player
         {
@@ -421,37 +420,22 @@ void* gameEngine(void* arg){
     sf::Texture pellet_texture;
     sf::Font font;
     sf::Texture ending_screen;
-    sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex, playerTex;
+    sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex;
+    sf::Texture playerTex;
+    sf::Texture playerDeadTex;
 
     //screens
     //============================================== loading resources.
-    if(!texture.loadFromFile("resources/map.png"))
-    {
-        // Error loading image
-        std::cout<<"Could not load map image"<<std::endl;
-        return NULL;
-    }
-
-    if(!pellet_texture.loadFromFile("resources/smallPellet.png")){
-        // Error loading image
-        std::cout<<"Could not load pellet image"<<std::endl;
-        return NULL;
-    }
-    if(!font.loadFromFile("resources/pacFont.ttf")){
-        // Error loading font
-        std::cout<<"Could not load font"<<std::endl;
-        return NULL;
-    }
-    if (!ending_screen.loadFromFile("resources/win_screen.png")){
-        // Error loading image
-        std::cout<<"Could not load ending screen image"<<std::endl;
-        return NULL;
-    }
+    texture.loadFromFile("resources/map.png");
+    pellet_texture.loadFromFile("resources/smallPellet.png");
+    font.loadFromFile("resources/pacFont.ttf");
+    ending_screen.loadFromFile("resources/win_screen.png");
     ghostRedTex.loadFromFile("resources/redGhostRect.png");
     ghostBlueTex.loadFromFile("resources/blueGhostRect.png");
     ghostGreenTex.loadFromFile("resources/greenGhostRect.png");
     ghostPurpleTex.loadFromFile("resources/purpleGhostRect.png");
     playerTex.loadFromFile("resources/pacmanRect.png");
+    playerDeadTex.loadFromFile("resources/pacmanDeadRect.png");
     
     g1.character.setTexture(ghostRedTex); 
     g1.character.setTextureRect(sf::IntRect(0,0,playerSize,playerSize));
@@ -563,7 +547,12 @@ void* gameEngine(void* arg){
                 window.close();
             }
         }
+        
 
+        if(ifhit)
+            playerSprite.setTexture(playerDeadTex);
+        else
+            playerSprite.setTexture(playerTex);
 
         if (score == counter){
             window.close();
