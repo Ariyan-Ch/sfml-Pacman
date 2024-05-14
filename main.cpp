@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <pthread.h>
 #include <semaphore.h>
 using namespace std;
@@ -26,6 +27,9 @@ sf::Vector2i playerPosition(1, 4);
 sf::Vector2i playerVelocity (0, 0);
 sf::Text r_score, r_lives;
 sf::Sprite BigPellets;
+sf::SoundBuffer bufferSoundPelet, bufferSoundDeath;
+sf::Sound soundPellet, soundDeath;
+
 int BigPelletPositions [4][4] = {{1, 26, 1, 26}, //x-positions
                                 {11, 11, 24, 24}}; //y-positions
 bool BigPelletEaten = false; //to put ghosts in frightened state
@@ -508,6 +512,7 @@ void GhostCollision(float& hit_elapsed)
 
     if(ifhit && !BigPelletEaten){
         lives--;
+        soundDeath.play();
         r_lives.setString(std::to_string(lives));
         playerSprite.setPosition(16,16*4);
         playerPosition.x = 1;
@@ -580,6 +585,7 @@ void* UI(void* arg){
         if (ifcollected[playerPosition.y][playerPosition.x])
         {
             score++;
+            soundPellet.play();
             ifcollected[playerPosition.y][playerPosition.x] = 0;
             r_score.setString(std::to_string(score));
         }
@@ -656,6 +662,13 @@ void* gameEngine(void* arg){
     eyes.loadFromFile("resources/eyes.png");
     Big_pellet_texture.loadFromFile("resources/BigPellet.png");
     ScaredGhost.loadFromFile("resources/weakGhost.png");
+
+    bufferSoundPelet.loadFromFile("resources/coin_sound.wav");
+    bufferSoundDeath.loadFromFile("resources/death_sound.wav");
+
+
+    soundPellet.setBuffer(bufferSoundPelet);
+    soundDeath.setBuffer(bufferSoundDeath);
 
     g1.character.setTexture(ghostRedTex); 
     g1.character.setTextureRect(sf::IntRect(0,0,playerSize,playerSize));
@@ -896,8 +909,10 @@ void* gameEngine(void* arg){
     
     sf::RenderWindow win_screen(sf::VideoMode(448, 576), title);
     outcome.setPosition(win_screen.getSize().x/2 - 140, win_screen.getSize().y/2 - 50);
-
+    bufferSoundDeath.loadFromFile("resources/ending_sound.wav");
+    soundDeath.setBuffer(bufferSoundDeath);
     //End Screen Loop
+    soundDeath.play();
     while(win_screen.isOpen())
     {
         usleep(3000);
