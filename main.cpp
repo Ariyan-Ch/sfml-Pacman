@@ -340,7 +340,7 @@ void* ghostMovement(void* arg){
         if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
 
             Vector2i newPosition = g->position + g->velocity;
-            if(numberMap[newPosition.y][newPosition.x] != 1 && g->dead == false){
+            if(numberMap[newPosition.y][newPosition.x] != 1){
                 if(g->velocity.x==-1){
                     g->character.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
                 }
@@ -372,26 +372,30 @@ void GhostCollision()
         return;
     if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
     {
-        g1.dead = true;
+        if(BigPelletEaten)
+            g1.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g2.position.x && playerPosition.y == g2.position.y)
     {
-        g2.dead = true;
+        if(BigPelletEaten)
+            g2.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g3.position.x && playerPosition.y == g3.position.y)
     {
-        g3.dead = true;
+        if(BigPelletEaten)
+            g3.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
     {
-        g4.dead = true;
+        if(BigPelletEaten)
+            g4.dead = true;
         ifhit = true; //to make player invincible
     }
 
-    if(ifhit){
+    if(ifhit && !BigPelletEaten){
         lives--;
         r_lives.setString(std::to_string(lives));
         playerSprite.setPosition(16,16*4);
@@ -624,46 +628,46 @@ void* gameEngine(void* arg){
         }
         
 
+        //----------- ghost dead texture change
+
+        if(g1.dead){
+            g1.character.setTexture(eyes);
+        }
+        else if(BigPelletEaten)
+            g1.character.setTexture(ScaredGhost);
+        else
+            g1.character.setTexture(ghostRedTex);
+
+        if(g2.dead){
+            g2.character.setTexture(eyes);
+        }
+        else if(BigPelletEaten)
+            g2.character.setTexture(ScaredGhost);
+        else
+            g2.character.setTexture(ghostBlueTex);
+
+        if(g3.dead){
+            g3.character.setTexture(eyes);
+        }
+        else if(BigPelletEaten)
+            g3.character.setTexture(ScaredGhost);
+        else
+            g3.character.setTexture(ghostGreenTex);
+
+        if(g4.dead){
+            g4.character.setTexture(eyes);
+        }
+        else if(BigPelletEaten)
+            g4.character.setTexture(ScaredGhost);
+        else
+            g4.character.setTexture(ghostPurpleTex);
+
+
         if(ifhit)
             playerSprite.setTexture(playerDeadTex);
         else
             playerSprite.setTexture(playerTex);
 
-
-        if(g1.dead){
-            g1.character.setTexture(eyes);
-        }
-        else{
-            g1.character.setTexture(ghostRedTex);
-        }
-
-        if(g2.dead){
-            g2.character.setTexture(eyes);
-        }
-        else{
-            g2.character.setTexture(ghostBlueTex);
-        }
-
-        if(g3.dead){
-            g3.character.setTexture(eyes);
-        }
-        else{
-            g3.character.setTexture(ghostGreenTex);
-        }
-        if(g4.dead){
-            g4.character.setTexture(eyes);
-        }
-        else{
-            g4.character.setTexture(ghostPurpleTex);
-        }
-
-        if (BigPelletEaten)
-        {
-            g1.character.setTexture(ScaredGhost);
-            g2.character.setTexture(ScaredGhost);
-            g3.character.setTexture(ScaredGhost);
-            g4.character.setTexture(ScaredGhost);
-        }
 
         if (score == counter){
             window.close();
@@ -696,16 +700,16 @@ void* gameEngine(void* arg){
         }
 
         if (BigPellet_Index < 4 && BP_elapsed > 5)
-                    {
-                        BigPellets.setPosition(16 * BigPelletPositions[0][BigPellet_Index], 16 * BigPelletPositions[1][BigPellet_Index]);
-                        BigPelletEaten = false;
-                    }
+        {
+            BigPellets.setPosition(16 * BigPelletPositions[0][BigPellet_Index], 16 * BigPelletPositions[1][BigPellet_Index]);
+            BigPelletEaten = false;
+        }
 
         for (int i = 0; i < 4; i++)
-           {
+        {
             if (BP_elapsed > 5)
               window.draw(BigPellets);
-           }
+        }
      
 
         window.draw(map);
