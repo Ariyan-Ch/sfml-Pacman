@@ -28,7 +28,7 @@ sf::Text r_score, r_lives;
 sf::Sprite BigPellets;
 int BigPelletPositions [4][4] = {{1, 26, 1, 26}, //x-positions
                                 {11, 11, 24, 24}}; //y-positions
-bool BigPelletEaten = false; //to if to put ghosts in frightened state
+bool BigPelletEaten = false; //to put ghosts in frightened state
 int BigPellet_Index = 0;
                                   
 short int numberMap [36][28] = {
@@ -76,16 +76,17 @@ bool ifwin = false;
 bool ifhit = false;
 bool gameRuns = true;
 
-
-float elapsed = 0.0f;
-float hit_elapsed = 0.0f;
-float BP_elapsed = 0.0f;
 float keyPermElapsed = 0.0f;
+float BP_elapsed = 0.0f;
+
 pthread_t gameEngineThreadID, UIThreadID, ghost1ThreadID, ghost2ThreadID,ghost3ThreadID,ghost4ThreadID;
 sem_t startRestThreads;
 sem_t pacmanGhostReadWrite;
 sem_t keys;
 sem_t permits;
+
+sem_t boosts;
+sem_t mutexBoost; 
 //================================================================------...... DECLARATION OF GLOBAL VARS
 
 //========================== Ghost Stuff
@@ -98,6 +99,7 @@ struct Ghost{
     float movementSpeed = 0.2f;
     float elapsed;
     bool dead = false;
+    bool speedBoost = false;
     sf::Sprite character;
     Ghost (char n = '-'){
         velocity.x = 0;
@@ -156,8 +158,9 @@ double calculateDistance(int x1, int y1, int x2, int y2) {
 void decideVelo(struct Ghost& g){
     double minDistance = 5000;
     double dist;
+    Vector2i oldWaes = g.velocity;
     if(g.dead){
-        if(numberMap[g.position.y][g.position.x-1] !=1 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+        if(numberMap[g.position.y][g.position.x-1] !=1 && oldWaes.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
             dist = calculateDistance(g.position.x-1, g.position.y, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -166,7 +169,7 @@ void decideVelo(struct Ghost& g){
             }
             //std::cout<<minDistance<<std::endl;
         }
-        if(numberMap[g.position.y-1][g.position.x] !=1 && g.velocity.y !=1){
+        if(numberMap[g.position.y-1][g.position.x] !=1 && oldWaes.y !=1){
             dist = calculateDistance(g.position.x, g.position.y-1, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -174,7 +177,7 @@ void decideVelo(struct Ghost& g){
                 g.velocity.y = -1;
             }
         }
-        if(numberMap[g.position.y][g.position.x+1] !=1 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+        if(numberMap[g.position.y][g.position.x+1] !=1 && oldWaes.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
             dist = calculateDistance(g.position.x+1, g.position.y, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -182,18 +185,19 @@ void decideVelo(struct Ghost& g){
                 g.velocity.y = 0;
             }
         }
-        if(numberMap[g.position.y+1][g.position.x] !=1 && g.velocity.y != -1){
+        if(numberMap[g.position.y+1][g.position.x] !=1 && oldWaes.y != -1){
             dist = calculateDistance(g.position.x, g.position.y+1,g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
                 g.velocity.x = 0;
                 g.velocity.y = 1;
             }
+
         }
     }
     else{
         if(g.name == 'r'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            if(numberMap[g.position.y][g.position.x-1] == 0 && oldWaes.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
                 dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -202,7 +206,7 @@ void decideVelo(struct Ghost& g){
                 }
                 //std::cout<<minDistance<<std::endl;
             }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            if(numberMap[g.position.y-1][g.position.x] == 0 && oldWaes.y !=1){
                 dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -210,7 +214,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = -1;
                 }
             }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            if(numberMap[g.position.y][g.position.x+1] == 0 && oldWaes.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
                 dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -218,17 +222,18 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            if(numberMap[g.position.y+1][g.position.x] == 0 && oldWaes.y != -1){
                 dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
                     g.velocity.x = 0;
                     g.velocity.y = 1;
                 }
+
             }
         }
         else if(g.name == 'b'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            if(numberMap[g.position.y][g.position.x-1] == 0 && oldWaes.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
                 dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -236,7 +241,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            if(numberMap[g.position.y-1][g.position.x] == 0 && oldWaes.y !=1){
                 dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -244,7 +249,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = -1;
                 }
             }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            if(numberMap[g.position.y][g.position.x+1] == 0 && oldWaes.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
                 dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -252,7 +257,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            if(numberMap[g.position.y+1][g.position.x] == 0 && oldWaes.y != -1){
                 dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
@@ -262,42 +267,44 @@ void decideVelo(struct Ghost& g){
             }
         }
         else if(g.name == 'g'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(numberMap[g.position.y][g.position.x-1] == 0 && oldWaes.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x-2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
                     g.velocity.x = -1;
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+4, playerPosition.y);
+            if(numberMap[g.position.y-1][g.position.x] == 0 && oldWaes.y !=1){
+                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x-2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
                     g.velocity.x = 0;
                     g.velocity.y = -1;
                 }
             }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(numberMap[g.position.y][g.position.x+1] == 0 && oldWaes.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x-2, playerPosition.y);
                 if(minDistance > dist){
                     minDistance = dist;
                     g.velocity.x = 1;
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+4, playerPosition.y+1);
+            if(numberMap[g.position.y+1][g.position.x] == 0 && oldWaes.y != -1){
+                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x-2, playerPosition.y+1);
+
                 if(minDistance > dist){
                     minDistance = dist;
                     g.velocity.x = 0;
                     g.velocity.y = 1;
                 }
+
             }
         }
         else if(g.name == 'p'){
             minDistance = -1;
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            if(numberMap[g.position.y][g.position.x-1] == 0 && oldWaes.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
                 dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
                 if(minDistance < dist){
                     minDistance = dist;
@@ -305,7 +312,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            if(numberMap[g.position.y-1][g.position.x] == 0 && oldWaes.y !=1){
                 dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
                 if(minDistance < dist){
                     minDistance = dist;
@@ -313,7 +320,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = -1;
                 }
             }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            if(numberMap[g.position.y][g.position.x+1] == 0 && oldWaes.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
                 dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
                 if(minDistance < dist){
                     minDistance = dist;
@@ -321,7 +328,7 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = 0;
                 }
             }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            if(numberMap[g.position.y+1][g.position.x] == 0 && oldWaes.y != -1){
                 dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
                 if(minDistance < dist){
                     minDistance = dist;
@@ -329,23 +336,53 @@ void decideVelo(struct Ghost& g){
                     g.velocity.y = +1;
                 }
             }
+            if(g.position.y == 17 && g.position.x == 0)
+            {
+                g.velocity.x = 1;
+                g.velocity.y = 0;
+            }
+            else if(g.position.y == 17 && g.position.x ==27){
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+            
         }
     }
 }
 //takes ghost structure returns nothing. moves the ghost
 void* ghostMovement(void* arg){
+    sf::Clock timerGhost;
+    float timePasedGhost = 0.0f;
+    struct Ghost * g = (Ghost*)arg;
 
     while(gameRuns){
 
-        struct Ghost * g = (Ghost*)arg;
+        if(!sem_trywait(&mutexBoost)){
+            if(!sem_trywait(&boosts)){
+                if(g->speedBoost == false)
+                    g->speedBoost = true;
+                else
+                    sem_post(&boosts);
+            }
+            sem_post(&mutexBoost);
+        }
 
+        timePasedGhost = timerGhost.restart().asSeconds();
+        g->elapsed += timePasedGhost;
+        if(g->speedBoost)
+            g->elapsed += timePasedGhost/2;
+
+        if(g->dead == true){
+            g->movementSpeed = 0.05f;
+        }
         if(g->position.y>=16 && g->position.x>=11 && g->position.y<=18 && g->position.x<=17){
             g->dead = false;
             g->movementSpeed = 0.2f;
-            if(keyPermElapsed>5)
-                if(sem_trywait(&permits)){
+            if(keyPermElapsed>4){
+                if(!sem_trywait(&permits)){
             
-                    if(sem_trywait(&keys)){
+                    if(!sem_trywait(&keys)){
+                        keyPermElapsed = 0;
                         if(g->name == 'r'){
 
                             g->position.x = 13;
@@ -357,16 +394,17 @@ void* ghostMovement(void* arg){
                         else
                             g->position.x = 16;
                         g->position.y = 15;
-                        
-                        keyPermElapsed = 0;
                         sem_post(&keys);
                     }
                     sem_post(&permits);
                 }
+            }
         }
 
       //  if(g->position.y>=16 && g->position.x>=11 && g->position.y<=18 && g->position.x<=17)
         //    g->dead = false;
+        if(!gameRuns)
+            break;
         if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
 
             sem_wait(&pacmanGhostReadWrite);
@@ -401,7 +439,7 @@ void* ghostMovement(void* arg){
 //========================== Ghost Stuff
 
 
-void GhostCollision()
+void GhostCollision(float& hit_elapsed)
 {
     if(ifhit){
 
@@ -412,6 +450,13 @@ void GhostCollision()
         if(BigPelletEaten){
             g1.dead = true;
             g1.movementSpeed = 0.05f;
+            if(g1.speedBoost){
+                if(!sem_trywait(&mutexBoost)){
+                    sem_post(&boosts);
+                    g1.speedBoost = false;
+                    sem_post(&mutexBoost);
+                }
+            }
         }
         ifhit = true; //to make player invincible
     }
@@ -420,7 +465,13 @@ void GhostCollision()
         if(BigPelletEaten){
             g2.dead = true;
             g2.movementSpeed = 0.05f;
-
+            if(g2.speedBoost){
+                if(!sem_trywait(&mutexBoost)){
+                    sem_post(&boosts);
+                    g2.speedBoost = false;
+                    sem_post(&mutexBoost);
+                }
+            }
         }
         ifhit = true; //to make player invincible
     }
@@ -429,7 +480,13 @@ void GhostCollision()
         if(BigPelletEaten){
             g3.dead = true;
             g3.movementSpeed = 0.05f;
-
+            if(g3.speedBoost){
+                if(!sem_trywait(&mutexBoost)){
+                    sem_post(&boosts);
+                    g3.speedBoost = false;
+                    sem_post(&mutexBoost);
+                }
+            }
         }
         ifhit = true; //to make player invincible
     }
@@ -438,7 +495,13 @@ void GhostCollision()
         if(BigPelletEaten){
             g4.dead = true;
             g4.movementSpeed = 0.05f;
-
+            if(g4.speedBoost){
+                if(!sem_trywait(&mutexBoost)){
+                    sem_post(&boosts);
+                    g4.speedBoost = false;
+                    sem_post(&mutexBoost);
+                }
+            }
         }
         ifhit = true; //to make player invincible
     }
@@ -453,9 +516,19 @@ void GhostCollision()
     }
 }
 void* UI(void* arg){
+
+    sf::Clock timerUI;
+    float timePasedUI = 0.0f;
+    float secondsUI = 0.0f;
+    float elapsed = 0.0f;
+    float hit_elapsed = 0.0f;
     while(gameRuns){
                  // Move the player
-        
+        secondsUI = timerUI.restart().asSeconds();
+        elapsed += secondsUI;
+        hit_elapsed += secondsUI;
+        keyPermElapsed += secondsUI;
+
         if (elapsed >= movementSpeed) { // Check if enough time has passed
             
             if (sf::Keyboard::isKeyPressed(Keyboard::Up)){  
@@ -475,7 +548,11 @@ void* UI(void* arg){
                 playerSprite.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
             }     
             Vector2i newPosition = playerPosition + playerVelocity;
+            if(!gameRuns)
+                break;
+
             sem_wait(&pacmanGhostReadWrite); 
+
             if (numberMap[newPosition.y][newPosition.x] == 0) {
                 playerPosition = newPosition;
                 playerSprite.setPosition(playerPosition.x * playerSize, playerPosition.y * playerSize);
@@ -494,6 +571,7 @@ void* UI(void* arg){
                 playerPosition = newPosition;
             }
             elapsed = 0.0f; // Reset the elapsed time
+
             sem_post(&pacmanGhostReadWrite); 
         }
         
@@ -505,6 +583,9 @@ void* UI(void* arg){
             ifcollected[playerPosition.y][playerPosition.x] = 0;
             r_score.setString(std::to_string(score));
         }
+        if(!gameRuns)
+            break;
+
         sem_wait(&pacmanGhostReadWrite);
         if (playerPosition.x == BigPelletPositions[0][BigPellet_Index] && playerPosition.y == BigPelletPositions[1][BigPellet_Index] && !BigPelletEaten && BigPellet_Index < 4)
         {
@@ -514,9 +595,9 @@ void* UI(void* arg){
             BigPellet_Index++;
             BP_elapsed = 0.0f;    
         }
-    
+        
         if (!ifhit) { //only if player is no longer invincible do we check ghost collision
-            GhostCollision();
+            GhostCollision(hit_elapsed);
 
         }
         else if (hit_elapsed > 5) //if invincibilty frames are over, reset the player
@@ -536,6 +617,9 @@ void* UI(void* arg){
                     g4.dead = true;
         }
         sem_post(&pacmanGhostReadWrite); 
+
+        if(!gameRuns)
+            break;
     }
     pthread_exit(NULL);
     return NULL;
@@ -676,14 +760,7 @@ void* gameEngine(void* arg){
     while (window.isOpen()) {
         //Update elasped
         seconds = clock.restart().asSeconds();
-        elapsed += seconds;
-        g1.elapsed += seconds;
-        g2.elapsed += seconds;
-        g3.elapsed += seconds;
-        g4.elapsed += seconds;
-        hit_elapsed += seconds;
         BP_elapsed += seconds;
-        keyPermElapsed += seconds;
 
         //check if user closes the window
         Event event;
@@ -796,6 +873,8 @@ void* gameEngine(void* arg){
 
     }
     //================================ Game Loop - End
+
+
     gameRuns = false;
     Text outcome;
     outcome.setFont(font);
@@ -841,7 +920,7 @@ void* gameEngine(void* arg){
         win_screen.display();
         gameRuns = false;
     }
-
+    gameRuns = false;
     pthread_exit(0);
 }
 
@@ -853,6 +932,8 @@ int main(){
     sem_init (&pacmanGhostReadWrite,0,1);//binary semaphore, a mutex used in Scenario 1
     sem_init (&keys,0,2);   //2 keys
     sem_init (&permits, 0, 2);  //2 permits
+    sem_init (&mutexBoost,0,1);
+    sem_init (&boosts,0,2);
 
     //loading resources, starting isOpen() window loop to continuously draw everything.
     pthread_create(&gameEngineThreadID,NULL,gameEngine,NULL);
