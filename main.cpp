@@ -368,8 +368,10 @@ void* ghostMovement(void* arg){
 
 void GhostCollision()
 {
-    if(ifhit)
+    if(ifhit){
+
         return;
+    }
     if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
     {
         if(BigPelletEaten)
@@ -465,11 +467,24 @@ void* UI(void* arg){
 
         if (!ifhit) { //only if player is no longer invincible do we check ghost collision
             GhostCollision();
+
         }
         else if (hit_elapsed > 5) //if invincibilty frames are over, reset the player
-        {
+        {    
             ifhit = false; //the player can now be hit again
-        }     
+        }
+        else if(BigPelletEaten){
+                if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
+                    g1.dead = true;
+                else if (playerPosition.x == g2.position.x && playerPosition.y == g2.position.y)
+                    g2.dead = true;
+
+                else if (playerPosition.x == g3.position.x && playerPosition.y == g3.position.y)
+                    g3.dead = true;
+
+                else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
+                    g4.dead = true;
+        } 
     }
     pthread_exit(NULL);
     return NULL;
