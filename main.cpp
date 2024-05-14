@@ -27,6 +27,7 @@ sf::Vector2i playerVelocity (0, 0);
 sf::Text r_score, r_lives;
 int BigPelletPositions [4][4] = {{1, 26, 1, 26}, //x-positions
                                  {11, 11, 24, 24}}; //y-positions
+bool BigPelletEaten[4]; //to indicate which pellet position was eaten
                                   
 short int numberMap [36][28] = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -84,12 +85,10 @@ sem_t startRestThreads;
 //structure for all ghost functionalities
 struct Ghost{
     Vector2i position;
-    Vector2i housePosition;
     Vector2i velocity;
     char name;
     float movementSpeed = 0.2f;
     float elapsed;
-    bool dead = false;
     sf::Sprite character;
     Ghost (char n = '-'){
         velocity.x = 0;
@@ -100,7 +99,6 @@ struct Ghost{
         {   
             position.x = 13;
             position.y = 14;
-
         }
         else if(n=='g')
         {
@@ -116,8 +114,7 @@ struct Ghost{
         {      
             position.x = 16;
             position.y = 14;
-        }      
-        housePosition = position;  
+        }        
     }
     Ghost(Texture& t, char n = '-', int x=0, int y=0, int vx = 0, int vy = 0){
         position.x = 1;
@@ -126,7 +123,7 @@ struct Ghost{
         velocity.y = -1;
         elapsed = 0.0f;
         name = n;
-        housePosition = position;
+
     }
 };
 Ghost g1('r');
@@ -147,9 +144,9 @@ double calculateDistance(int x1, int y1, int x2, int y2) {
 void decideVelo(struct Ghost& g){
     double minDistance = 5000;
     double dist;
-    if(g.dead){
+    if(g.name == 'r'){
         if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-            dist = calculateDistance(g.position.x-1, g.position.y, g.housePosition.x, g.housePosition.y);
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
             if(minDistance > dist){
                 minDistance = dist;
                 g.velocity.x = -1;
@@ -158,7 +155,7 @@ void decideVelo(struct Ghost& g){
             //std::cout<<minDistance<<std::endl;
         }
         if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-            dist = calculateDistance(g.position.x, g.position.y-1, g.housePosition.x, g.housePosition.y);
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
             if(minDistance > dist){
                 minDistance = dist;
                 g.velocity.x = 0;
@@ -166,7 +163,7 @@ void decideVelo(struct Ghost& g){
             }
         }
         if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-            dist = calculateDistance(g.position.x+1, g.position.y, g.housePosition.x, g.housePosition.y);
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
             if(minDistance > dist){
                 minDistance = dist;
                 g.velocity.x = 1;
@@ -174,7 +171,7 @@ void decideVelo(struct Ghost& g){
             }
         }
         if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-            dist = calculateDistance(g.position.x, g.position.y+1,g.housePosition.x, g.housePosition.y);
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
             if(minDistance > dist){
                 minDistance = dist;
                 g.velocity.x = 0;
@@ -182,143 +179,106 @@ void decideVelo(struct Ghost& g){
             }
         }
     }
-    else{
-        if(g.name == 'r'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = -1;
-                    g.velocity.y = 0;
-                }
-                //std::cout<<minDistance<<std::endl;
-            }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = -1;
-                }
-            }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 1;
-                    g.velocity.y = 0;
-                }
-            }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = 1;
-                }
+    else if(g.name == 'b'){
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
             }
         }
-        else if(g.name == 'b'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+2, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = -1;
-                    g.velocity.y = 0;
-                }
-            }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+2, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = -1;
-                }
-            }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+2, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 1;
-                    g.velocity.y = 0;
-                }
-            }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+2, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = 1;
-                }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
             }
         }
-        else if(g.name == 'g'){
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+4, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = -1;
-                    g.velocity.y = 0;
-                }
-            }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+4, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = -1;
-                }
-            }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+4, playerPosition.y);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 1;
-                    g.velocity.y = 0;
-                }
-            }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+4, playerPosition.y+1);
-                if(minDistance > dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = 1;
-                }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 1;
+                g.velocity.y = 0;
             }
         }
-        else if(g.name == 'p'){
-            minDistance = -1;
-            if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
-                dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
-                if(minDistance < dist){
-                    minDistance = dist;
-                    g.velocity.x = -1;
-                    g.velocity.y = 0;
-                }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+2, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = 1;
             }
-            if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
-                dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
-                if(minDistance < dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = -1;
-                }
+        }
+    }
+    else if(g.name == 'g'){
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
             }
-            if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
-                dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
-                if(minDistance < dist){
-                    minDistance = dist;
-                    g.velocity.x = +1;
-                    g.velocity.y = 0;
-                }
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
             }
-            if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
-                dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
-                if(minDistance < dist){
-                    minDistance = dist;
-                    g.velocity.x = 0;
-                    g.velocity.y = +1;
-                }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x+4, playerPosition.y);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x+4, playerPosition.y+1);
+            if(minDistance > dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = 1;
+            }
+        }
+    }
+    else if(g.name == 'p'){
+        minDistance = -1;
+        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+            dist = calculateDistance(g.position.x-1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = -1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+            dist = calculateDistance(g.position.x, g.position.y-1, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = -1;
+            }
+        }
+        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+            dist = calculateDistance(g.position.x+1, g.position.y, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = +1;
+                g.velocity.y = 0;
+            }
+        }
+        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+            dist = calculateDistance(g.position.x, g.position.y+1, playerPosition.x, playerPosition.y);
+            if(minDistance < dist){
+                minDistance = dist;
+                g.velocity.x = 0;
+                g.velocity.y = +1;
             }
         }
     }
@@ -327,15 +287,15 @@ void decideVelo(struct Ghost& g){
 void* ghostMovement(void* arg){
 
     while(gameRuns){
-
+    //sem_post(&semaGhost);
         struct Ghost * g = (Ghost*)arg;
-        if(g->position == g->housePosition)
-            g->dead = false;
+        Vector2i oldVelo = g->velocity;
         decideVelo(*g); // very long function. Decides the movement direction of ghost based on the user position on the board.
+
         if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
 
             Vector2i newPosition = g->position + g->velocity;
-            if(numberMap[newPosition.y][newPosition.x] != 1 && g->dead == false){
+            if(oldVelo == g->velocity && numberMap[newPosition.y][newPosition.x] != 1){
                 if(g->velocity.x==-1){
                     g->character.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
                 }
@@ -367,25 +327,21 @@ void GhostCollision()
         return;
     if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
     {
-        g1.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g2.position.x && playerPosition.y == g2.position.y)
     {
-        g2.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g3.position.x && playerPosition.y == g3.position.y)
     {
-        g3.dead = true;
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
     {
-        g4.dead = true;
         ifhit = true; //to make player invincible
     }
-
+    
     if(ifhit){
         lives--;
         r_lives.setString(std::to_string(lives));
@@ -471,7 +427,6 @@ void* gameEngine(void* arg){
     sf::Texture ghostRedTex, ghostBlueTex, ghostGreenTex, ghostPurpleTex;
     sf::Texture playerTex;
     sf::Texture playerDeadTex;
-    sf::Texture eyes;
 
     //screens
     //============================================== loading resources.
@@ -486,8 +441,7 @@ void* gameEngine(void* arg){
     playerTex.loadFromFile("resources/pacmanRect.png");
     playerDeadTex.loadFromFile("resources/pacmanDeadRect.png");
     Big_pellet_texture.loadFromFile("resources/BigPellet.png");
-    eyes.loadFromFile("resources/eyes.png");
-
+    
     g1.character.setTexture(ghostRedTex); 
     g1.character.setTextureRect(sf::IntRect(0,0,playerSize,playerSize));
     g1.character.setPosition(16*g1.position.x, 16*g1.position.y);
@@ -552,14 +506,12 @@ void* gameEngine(void* arg){
     //----small pellets
 
     //----Big Pellets
-    bool* BP;
-    BP = new bool[4];
     for (int i = 0; i < 4; i++)
         {
             if (i == 0)
-            BP[i] = true;
+            BigPelletEaten[i] = true;
             else
-            BP[i] = false;
+            BigPelletEaten[i] = false;
         }
     
     sf::Sprite* BigPellets = new Sprite[4];
@@ -625,34 +577,6 @@ void* gameEngine(void* arg){
         else
             playerSprite.setTexture(playerTex);
 
-
-        if(g1.dead){
-            g1.character.setTexture(eyes);
-        }
-        else{
-            g1.character.setTexture(ghostRedTex);
-        }
-
-        if(g2.dead){
-            g2.character.setTexture(eyes);
-        }
-        else{
-            g2.character.setTexture(ghostBlueTex);
-        }
-
-        if(g3.dead){
-            g3.character.setTexture(eyes);
-        }
-        else{
-            g3.character.setTexture(ghostGreenTex);
-        }
-        if(g4.dead){
-            g4.character.setTexture(eyes);
-        }
-        else{
-            g4.character.setTexture(ghostPurpleTex);
-        }
-
         if (score == counter){
             window.close();
             ifwin = true;
@@ -685,7 +609,7 @@ void* gameEngine(void* arg){
 
         for (int i = 0; i < 4; i++)
            {
-            if (BP[i])
+            if (BigPelletEaten[i])
               window.draw(BigPellets[i]);
            }
      
