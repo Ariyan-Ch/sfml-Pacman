@@ -27,7 +27,7 @@ sf::Vector2i playerVelocity (0, 0);
 sf::Text r_score, r_lives;
 sf::Sprite BigPellets;
 int BigPelletPositions [4][4] = {{1, 26, 1, 26}, //x-positions
-                                 {11, 11, 24, 24}}; //y-positions
+                                {11, 11, 24, 24}}; //y-positions
 bool BigPelletEaten = false; //to if to put ghosts in frightened state
 int BigPellet_Index = 0;
                                   
@@ -47,10 +47,10 @@ short int numberMap [36][28] = {
         {1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1},
-        {1,1,1,1,1,1,0,1,1,0,1,1,2,2,2,2,1,1,0,1,1,0,1,1,1,1,1,1},
-        {1,1,1,1,1,1,0,1,1,0,1,2,2,2,2,2,2,1,0,1,1,0,1,1,1,1,1,1},
-        {0,0,0,0,0,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,0,0,0},
-        {1,1,1,1,1,1,0,1,1,0,1,2,2,2,2,2,2,1,0,1,1,0,1,1,1,1,1,1},
+        {1,1,1,1,1,1,0,1,1,0,1,1,1,2,2,1,1,1,0,1,1,0,1,1,1,1,1,1},
+        {1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1},
+        {0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0},
+        {1,1,1,1,1,1,0,1,1,0,1,0,0,0,0,0,0,1,0,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1},
         {1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1},
@@ -80,9 +80,12 @@ bool gameRuns = true;
 float elapsed = 0.0f;
 float hit_elapsed = 0.0f;
 float BP_elapsed = 0.0f;
-
+float keyPermElapsed = 0.0f;
 pthread_t gameEngineThreadID, UIThreadID, ghost1ThreadID, ghost2ThreadID,ghost3ThreadID,ghost4ThreadID;
 sem_t startRestThreads;
+sem_t pacmanGhostReadWrite;
+sem_t keys;
+sem_t permits;
 //================================================================------...... DECLARATION OF GLOBAL VARS
 
 //========================== Ghost Stuff
@@ -103,26 +106,27 @@ struct Ghost{
         name = n;
         if(n=='r')
         {   
-            position.x = 13;
-            position.y = 14;
+            position.x = 12;
+            position.y = 17;
 
         }
         else if(n=='g')
         {
-            position.x = 14;
-            position.y = 14;
+            position.x = 13;
+            position.y = 17;
         }
         else if(n=='b')
         {      
-            position.x = 15;
-            position.y = 14;
+            position.x = 14;
+            position.y = 17;
         }
         else if(n=='p')
         {      
-            position.x = 16;
-            position.y = 14;
+            position.x = 15;
+            position.y = 17;
         }      
-        housePosition = position;  
+        housePosition = position;
+        //housePosition.y += 4;  
     }
     Ghost(Texture& t, char n = '-', int x=0, int y=0, int vx = 0, int vy = 0){
         position.x = 1;
@@ -153,7 +157,7 @@ void decideVelo(struct Ghost& g){
     double minDistance = 5000;
     double dist;
     if(g.dead){
-        if(numberMap[g.position.y][g.position.x-1] == 0 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
+        if(numberMap[g.position.y][g.position.x-1] !=1 && g.velocity.x != 1 || (g.position.y == 17 && g.position.x <28 && g.position.x > 22)){
             dist = calculateDistance(g.position.x-1, g.position.y, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -162,7 +166,7 @@ void decideVelo(struct Ghost& g){
             }
             //std::cout<<minDistance<<std::endl;
         }
-        if(numberMap[g.position.y-1][g.position.x] == 0 && g.velocity.y !=1){
+        if(numberMap[g.position.y-1][g.position.x] !=1 && g.velocity.y !=1){
             dist = calculateDistance(g.position.x, g.position.y-1, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -170,7 +174,7 @@ void decideVelo(struct Ghost& g){
                 g.velocity.y = -1;
             }
         }
-        if(numberMap[g.position.y][g.position.x+1] == 0 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
+        if(numberMap[g.position.y][g.position.x+1] !=1 && g.velocity.x!=-1 || (g.position.y==17 && g.position.x >0 && g.position.x < 6)){
             dist = calculateDistance(g.position.x+1, g.position.y, g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -178,7 +182,7 @@ void decideVelo(struct Ghost& g){
                 g.velocity.y = 0;
             }
         }
-        if(numberMap[g.position.y+1][g.position.x] == 0 && g.velocity.y != -1){
+        if(numberMap[g.position.y+1][g.position.x] !=1 && g.velocity.y != -1){
             dist = calculateDistance(g.position.x, g.position.y+1,g.housePosition.x, g.housePosition.y);
             if(minDistance > dist){
                 minDistance = dist;
@@ -334,11 +338,40 @@ void* ghostMovement(void* arg){
     while(gameRuns){
 
         struct Ghost * g = (Ghost*)arg;
-        if(g->position == g->housePosition)
+
+        if(g->position.y>=16 && g->position.x>=11 && g->position.y<=18 && g->position.x<=17){
             g->dead = false;
-        decideVelo(*g); // very long function. Decides the movement direction of ghost based on the user position on the board.
+            g->movementSpeed = 0.2f;
+            if(keyPermElapsed>5)
+                if(sem_trywait(&permits)){
+            
+                    if(sem_trywait(&keys)){
+                        if(g->name == 'r'){
+
+                            g->position.x = 13;
+                        }
+                        else if(g->name == 'b')
+                            g->position.x = 14;
+                        else if(g->name == 'g')
+                            g->position.x = 15;
+                        else
+                            g->position.x = 16;
+                        g->position.y = 15;
+                        
+                        keyPermElapsed = 0;
+                        sem_post(&keys);
+                    }
+                    sem_post(&permits);
+                }
+        }
+
+      //  if(g->position.y>=16 && g->position.x>=11 && g->position.y<=18 && g->position.x<=17)
+        //    g->dead = false;
         if (g->elapsed >= g->movementSpeed) { // Check if enough time has passed
 
+            sem_wait(&pacmanGhostReadWrite);
+
+            decideVelo(*g); // very long function. Decides the movement direction of ghost based on the user position on the board.
             Vector2i newPosition = g->position + g->velocity;
             if(numberMap[newPosition.y][newPosition.x] != 1){
                 if(g->velocity.x==-1){
@@ -357,6 +390,8 @@ void* ghostMovement(void* arg){
             g->position = newPosition;
             g->character.setPosition(newPosition.x * playerSize, newPosition.y * playerSize);
             g->elapsed = 0.0f; // Reset the elapsed time
+
+            sem_post(&pacmanGhostReadWrite);
         }
     }
 
@@ -374,26 +409,37 @@ void GhostCollision()
     }
     if (playerPosition.x == g1.position.x && playerPosition.y == g1.position.y)
     {
-        if(BigPelletEaten)
+        if(BigPelletEaten){
             g1.dead = true;
+            g1.movementSpeed = 0.05f;
+        }
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g2.position.x && playerPosition.y == g2.position.y)
     {
-        if(BigPelletEaten)
+        if(BigPelletEaten){
             g2.dead = true;
+            g2.movementSpeed = 0.05f;
+
+        }
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g3.position.x && playerPosition.y == g3.position.y)
     {
-        if(BigPelletEaten)
+        if(BigPelletEaten){
             g3.dead = true;
+            g3.movementSpeed = 0.05f;
+
+        }
         ifhit = true; //to make player invincible
     }
     else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
     {
-        if(BigPelletEaten)
+        if(BigPelletEaten){
             g4.dead = true;
+            g4.movementSpeed = 0.05f;
+
+        }
         ifhit = true; //to make player invincible
     }
 
@@ -409,8 +455,9 @@ void GhostCollision()
 void* UI(void* arg){
     while(gameRuns){
                  // Move the player
+        
         if (elapsed >= movementSpeed) { // Check if enough time has passed
-
+            
             if (sf::Keyboard::isKeyPressed(Keyboard::Up)){  
                 playerVelocity = Vector2i(0, -1);
                 playerSprite.setTextureRect(sf::IntRect(playerSize*1,0,playerSize,playerSize));
@@ -428,6 +475,7 @@ void* UI(void* arg){
                 playerSprite.setTextureRect(sf::IntRect(playerSize*2,0,playerSize,playerSize));
             }     
             Vector2i newPosition = playerPosition + playerVelocity;
+            sem_wait(&pacmanGhostReadWrite); 
             if (numberMap[newPosition.y][newPosition.x] == 0) {
                 playerPosition = newPosition;
                 playerSprite.setPosition(playerPosition.x * playerSize, playerPosition.y * playerSize);
@@ -446,8 +494,10 @@ void* UI(void* arg){
                 playerPosition = newPosition;
             }
             elapsed = 0.0f; // Reset the elapsed time
+            sem_post(&pacmanGhostReadWrite); 
         }
         
+
         //check if at the current position, a coint is present. If true, increment score and set the array to false at the position
         if (ifcollected[playerPosition.y][playerPosition.x])
         {
@@ -455,7 +505,7 @@ void* UI(void* arg){
             ifcollected[playerPosition.y][playerPosition.x] = 0;
             r_score.setString(std::to_string(score));
         }
-        
+        sem_wait(&pacmanGhostReadWrite);
         if (playerPosition.x == BigPelletPositions[0][BigPellet_Index] && playerPosition.y == BigPelletPositions[1][BigPellet_Index] && !BigPelletEaten && BigPellet_Index < 4)
         {
             BigPelletEaten = true;
@@ -464,7 +514,7 @@ void* UI(void* arg){
             BigPellet_Index++;
             BP_elapsed = 0.0f;    
         }
-
+    
         if (!ifhit) { //only if player is no longer invincible do we check ghost collision
             GhostCollision();
 
@@ -484,7 +534,8 @@ void* UI(void* arg){
 
                 else if (playerPosition.x == g4.position.x && playerPosition.y == g4.position.y)
                     g4.dead = true;
-        } 
+        }
+        sem_post(&pacmanGhostReadWrite); 
     }
     pthread_exit(NULL);
     return NULL;
@@ -551,7 +602,7 @@ void* gameEngine(void* arg){
     for (int i = 0; i < 36; i++)
        for (int j = 0; j < 28; j++)
           {
-            if (!numberMap[i][j])
+            if (!numberMap[i][j] && !(i>=16 && j>=11 && i<=18 && j<=17))
               counter++;
           }
     
@@ -564,7 +615,7 @@ void* gameEngine(void* arg){
     for (int i = 0; i < 36; i++){
        for (int j = 0; j < 28; j++)
           {
-            if (!numberMap[i][j])
+            if (!numberMap[i][j] && !(i>=16 && j>=11 && i<=18 && j<=17))
               ifcollected[i][j] = 1;
             else
                 ifcollected[i][j] = 0;  
@@ -575,7 +626,7 @@ void* gameEngine(void* arg){
     for (int i = 0; i < 36; i++)
        for (int j = 0; j < 28; j++)
           {
-            if (!numberMap[i][j])
+            if (!numberMap[i][j] && !(i>=16 && j>=11 && i<=18 && j<=17))
               {
                 pellets[k].setTexture(pellet_texture);
                 pellets[k].setPosition(j * 16, i * 16);
@@ -632,7 +683,8 @@ void* gameEngine(void* arg){
         g4.elapsed += seconds;
         hit_elapsed += seconds;
         BP_elapsed += seconds;
-        
+        keyPermElapsed += seconds;
+
         //check if user closes the window
         Event event;
         while (window.pollEvent(event)) {
@@ -702,7 +754,7 @@ void* gameEngine(void* arg){
         {
             for (int j = 0; j < 28; j++)
             {
-                if (!numberMap[i][j]) //if a coin *should* be present
+                if (!numberMap[i][j]&& !(i>=16 && j>=11 && i<=18 && j<=17)) //if a coin *should* be present
                 {
                     if (ifcollected[i][j]) //and it is, the pellet is drawn
                       window.draw(pellets[k]);
@@ -798,6 +850,10 @@ int main(){
 
     XInitThreads();
     sem_init (&startRestThreads,0,0);
+    sem_init (&pacmanGhostReadWrite,0,1);//binary semaphore, a mutex used in Scenario 1
+    sem_init (&keys,0,2);   //2 keys
+    sem_init (&permits, 0, 2);  //2 permits
+
     //loading resources, starting isOpen() window loop to continuously draw everything.
     pthread_create(&gameEngineThreadID,NULL,gameEngine,NULL);
 
